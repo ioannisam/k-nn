@@ -1,16 +1,16 @@
 #ifndef KNN_H
 #define KNN_H
 
-#include <stddef.h>
+#include <stddef.h> // For size_t
 
 typedef struct {
-  double* data; // Pointer to the data points
-  size_t  rows; // Number of data points
-  size_t  cols; // Number of dimensions
+    double* data;
+    size_t  rows;
+    size_t  cols;
 } DataSet;
 
-void calculate_distances(const DataSet* C, const DataSet* Q, double* distances);
-void quick_select(double* array, int left, int right, int k);
-void knn(const DataSet *C, const DataSet* Q, int k, size_t* indices);
+void random_data(DataSet* dataset, size_t points, size_t dimensions);
+void print_matrix(const double* matrix, size_t rows, size_t cols);
+void calculate_distances(const DataSet* C, const DataSet* Q, double* D);
 
 #endif
