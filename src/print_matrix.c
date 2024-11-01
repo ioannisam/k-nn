@@ -2,7 +2,10 @@
 
 #include <stdio.h>
 
-void print_matrix(const double* matrix, size_t rows, size_t cols) {
+void print_matrix(const Mat* matrix) {
+
+  size_t rows = matrix->rows;
+  size_t cols = matrix->cols;
 
   printf("        ");
   for (size_t j=0; j<cols; j++) {
@@ -17,9 +20,9 @@ void print_matrix(const double* matrix, size_t rows, size_t cols) {
   printf("\n");
 
   for (size_t i=0; i<rows; i++) {
-    printf("Point %zu |", i+1); // Row label
+    printf("Point %zu |", i+1);
     for (size_t j=0; j<cols; j++) {
-      printf(" %10.2f |", matrix[i * cols + j]); // Align numbers
+      printf(" %10.2f |", matrix->data[i*cols + j]);
     }
     printf("\n");
 
@@ -32,4 +35,3 @@ void print_matrix(const double* matrix, size_t rows, size_t cols) {
 
   printf("\n");
 }
-

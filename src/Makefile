@@ -5,7 +5,7 @@ CC = gcc
 CFLAGS = -I../include -I/usr/include/openblas -fopenmp
 
 # Source files
-SRCS = main.c random_input.c print_matrix.c calculate_distance.c
+SRCS = main.c random_input.c print_matrix.c calculate_distance.c quick_select.c find.c
 
 # Object files (replace .c with .o)
 OBJS = $(SRCS:.c=.o)
@@ -18,7 +18,7 @@ all: $(TARGET)
 
 # Link object files to create the executable
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^ -lopenblas -fopenmp  # Add -fopenmp here
+	$(CC) -o $@ $^ -lopenblas -fopenmp -lm
 
 # Compile source files to object files
 %.o: %.c
@@ -30,3 +30,4 @@ clean:
 
 # Specify phony targets
 .PHONY: all clean
+
