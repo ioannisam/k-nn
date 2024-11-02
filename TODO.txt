@@ -1,0 +1,1 @@
+Find a way to split the problem into sub-problem in order to parallelize calculations and boost execution speed.
