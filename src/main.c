@@ -27,19 +27,26 @@ int main() {
   Mat C, Q;
   random_data(&C, c, d);
   random_data(&Q, q, d);
+  printf("This is Matrix Queries: \n\n");
+  print_matrix(&Q);
+  printf("\n");
   printf("This is Matrix Corpus: \n\n");
   print_matrix(&C);
   printf("\n");
-  printf("This is Matrix Queries: \n\n");
-  print_matrix(&Q);
+
+
+  Mat newC;
+  truncMat(&C, &newC, 0.7);
+  printf("This is Matrix newC: \n\n");
+  print_matrix(&newC);
   printf("\n");
 
   Mat D;
   D.rows = q;
-  D.cols = c;
-  D.data = (double*)malloc(q*c*sizeof(double));
+  D.cols = newC.rows;
+  D.data = (double*)malloc(q*newC.rows*sizeof(double));
 
-  calculate_distances(&C, &Q, &D);
+  calculate_distances(&newC, &Q, &D);
   printf("This is Matrix Distances: \n\n");
   print_matrix(&D);
   printf("\n");
@@ -56,6 +63,7 @@ int main() {
 
   free(D.data);
   free(C.data);
+  free(newC.data);
   free(Q.data);
   free(N.data);
 

@@ -5,7 +5,7 @@ CC = gcc
 CFLAGS = -I../include -I/usr/include/openblas -fopenmp
 
 # Source files
-SRCS = main.c random_input.c print_matrix.c calculate_distance.c quick_select.c find.c
+SRCS = main.c random_input.c print_matrix.c calculate_distance.c quick_select.c find.c truncate.c
 
 # Object files (replace .c with .o)
 OBJS = $(SRCS:.c=.o)
