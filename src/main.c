@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
+#include <math.h>
 
 int main() {
   
@@ -19,36 +20,22 @@ int main() {
   scanf("%zu", &k);
   printf("\n");
 
-  if(k>c || k<=0) {
-    printf("Error: invalid k value.\n");
-    return 1;
-  }
-
   Mat C, Q;
   random_data(&C, c, d);
   random_data(&Q, q, d);
-  printf("This is Matrix Queries: \n\n");
-  print_matrix(&Q);
-  printf("\n");
+
   printf("This is Matrix Corpus: \n\n");
   print_matrix(&C);
   printf("\n");
 
-
   Mat newC;
-  truncMat(&C, &newC, 0.7);
+  truncMat(&C, &newC, 1);
   printf("This is Matrix newC: \n\n");
   print_matrix(&newC);
   printf("\n");
 
-  Mat D;
-  D.rows = q;
-  D.cols = newC.rows;
-  D.data = (double*)malloc(q*newC.rows*sizeof(double));
-
-  calculate_distances(&newC, &Q, &D);
-  printf("This is Matrix Distances: \n\n");
-  print_matrix(&D);
+  printf("This is Matrix Queries: \n\n");
+  print_matrix(&Q);
   printf("\n");
 
   Mat N;
@@ -56,12 +43,24 @@ int main() {
   N.cols = k;
   N.data = (double*)malloc(q*k*sizeof(double));
 
-  findKNN(&D, &N);
+  #pragma omp parallel for
+  for(int i=0; i<q; i++) {
+
+    double* D = (double*)malloc(newC.rows*sizeof(double));
+    calculate_distances(&newC, &(Mat){.rows = 1, .cols = d, .data = Q.data + i*d}, D);
+
+    quickSelect(D, 0, newC.rows-1, k, N.data + i*k);
+    for(int j=0; j<k; j++) {
+      N.data[i*k + j] = sqrt(N.data[i*k + j]);
+    }
+
+    free(D);
+  }
+
   printf("This is Matrix Neighbors: \n\n");
   print_matrix(&N);
   printf("\n");
 
-  free(D.data);
   free(C.data);
   free(newC.data);
   free(Q.data);

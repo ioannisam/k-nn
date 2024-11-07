@@ -1,49 +1,45 @@
 #include "../include/kNN.h"
 
 #include <cblas.h>
-#include <math.h>
 #include <omp.h>
 #include <stdlib.h>
+#include <math.h>
 
-void calculate_distances(const Mat *C, const Mat *Q, Mat *D) {
+void calculate_distances(const Mat *C, const Mat *Q, double *D) {
 
-  int c = (int)C->rows;
+  int c = (int)C->rows;  // Number of corpus points
+  int d = (int)C->cols;  // Number of dimensions
   int q = (int)Q->rows;
-  int d = (int)C->cols;
 
   double* C2 = (double*)malloc(c*sizeof(double));
+  double* Q2 = (double*)malloc(sizeof(double)); // Only one query point
+
   #pragma omp parallel for
-  for(int i=0; i<c; i++) {
+  for (int i = 0; i < c; i++) {
     double sum = 0.0;
-    for(int j=0; j<d; j++) {
-      sum += C->data[i*d + j]*C->data[i*d + j];
+    for (int j = 0; j < d; j++) {
+      sum += C->data[i * d + j] * C->data[i * d + j];
     }
     C2[i] = sum;
   }
 
-  double* Q2 = (double*)malloc(q*sizeof(double));
+  double sumQ = 0.0;
+  for(int j = 0; j < d; j++) {
+    sumQ += Q->data[j]*Q->data[j];
+  }
+  Q2[0]=sumQ; 
+
+  double* CQ = (double*)malloc(c * sizeof(double));
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, c, 1, d, 1.0, C->data, d, Q->data, d, 0.0, CQ, 1);
+
   #pragma omp parallel for
-  for(int i = 0; i<q; i++) {
-    double sum = 0.0;
-    for(int j=0; j<d; j++) {
-      sum += Q->data[i*d + j]*Q->data[i*d + j];
-    }
-    Q2[i] = sum;
+  for (int i = 0; i < c; i++) {
+    D[i] = C2[i] - 2 * CQ[i] + Q2[0];
   }
 
-  double* CQ = (double*)malloc(c*q*sizeof(double));
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, c, q, d, -2.0, C->data,
-              d, Q->data, d, 0.0, CQ, q);
-
-  #pragma omp parallel for collapse(2)
-  for(int i=0; i<c; i++) {
-    for(int j=0; j<q; j++) {
-      CQ[i*q + j] += C2[i] + Q2[j];
-      D->data[j*c + i] = CQ[i*q + j];
-    }
-  }
-
+  //sqrt later to save time
   free(C2);
   free(Q2);
   free(CQ);
 }
+
