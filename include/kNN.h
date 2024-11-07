@@ -16,8 +16,11 @@ void random_data(Mat* dataset, size_t points, size_t dimensions);
 // Prints a matrix with given number of rows and columns
 void print_matrix(const Mat* matrix);
 
+// Trunicates a matrix keeping only perc% of its rows
+void truncMat(Mat* src, Mat* target, double perc);
+
 // Calculates the distance matrix D between two datasets C and Q
-void calculate_distances(const Mat* C, const Mat* Q, Mat* D);
+void calculate_distances(const Mat* C, const Mat* Q, double* D);
 
 // Finds the k-nearest neighbors for each point in the dataset
 // Parameters:
@@ -26,7 +29,7 @@ void calculate_distances(const Mat* C, const Mat* Q, Mat* D);
 // - k: Number of neighbors to find
 // - knn_indices: Output array of k nearest neighbor indices for each point
 // - knn_distances: Output array of distances for the k nearest neighbors
-void findKNN(const Mat* D, Mat* N);
+void findKNN(double* D, int c, Mat* N);
 
 // Helper functions for quick-select algorithm
 int  partition  (double* arr, int left, int right);
