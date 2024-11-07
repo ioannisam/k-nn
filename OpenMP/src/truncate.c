@@ -9,7 +9,7 @@ void truncMat(Mat* src, Mat* target, double perc) {
   int const rows = src->rows;
   int const cols = src->cols;
 
-  int newRows = (int)rows*perc;
+  int newRows  = (int)rows*perc;
   target->data = (double*)malloc(newRows*cols*sizeof(double));
   target->rows = newRows;
   target->cols = cols;
@@ -23,12 +23,12 @@ void truncMat(Mat* src, Mat* target, double perc) {
   for(int i=rows-1; i>0; i--) {
     int j = rand()%(i+1);
 
-    int temp = indices[i];
+    int temp   = indices[i];
     indices[i] = indices[j];
     indices[j] = temp;
   }
 
-  for (int i=0; i<newRows; i++) {
+  for(int i=0; i<newRows; i++) {
     int rowIndex = indices[i];
     memcpy(target->data + i*cols, src->data + rowIndex*cols, cols*sizeof(double));
   }

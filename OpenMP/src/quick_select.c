@@ -11,8 +11,8 @@ int partition(double* arr, int left, int right) {
   double pivot = arr[right]; 
   int i = left;
 
-  for (int j = left; j < right; j++) {
-    if (arr[j] < pivot) {
+  for(int j = left; j < right; j++) {
+    if(arr[j] < pivot) {
       swap(arr, i, j);
       i++;
     }
@@ -22,16 +22,17 @@ int partition(double* arr, int left, int right) {
 }
 
 void quickSelect(double* arr, int left, int right, int k, double* result) {
-  if (left <= right) {
+
+  if(left <= right) {
     int pivotIndex = partition(arr, left, right);
 
-    if (pivotIndex == k-1) {
+    if(pivotIndex == k-1) {
       for(int i=0; i<k; i++) {
         result[i] = arr[i]; 
       }
       return;
     } 
-    else if (k-1 < pivotIndex) {
+    else if(k-1 < pivotIndex) {
       quickSelect(arr, left, pivotIndex-1, k, result);
     } 
     else {

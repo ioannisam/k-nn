@@ -1,5 +1,4 @@
 Set percentage and conditions for problem minimization
-Move for loop in main.c in find.c
 Make findKNN showcase indices and distances as well (modify quickSelect.c)
 Update documentation and pdf
 Implement pthreads and openCILK

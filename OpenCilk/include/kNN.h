@@ -29,7 +29,7 @@ void calculate_distances(const Mat* C, const Mat* Q, double* D);
 // - k: Number of neighbors to find
 // - knn_indices: Output array of k nearest neighbor indices for each point
 // - knn_distances: Output array of distances for the k nearest neighbors
-void findKNN(double* D, int c, Mat* N);
+void findKNN(Mat* C, Mat* Q, Mat* N);
 
 // Helper functions for quick-select algorithm
 int  partition  (double* arr, int left, int right);
