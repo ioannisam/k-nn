@@ -10,6 +10,9 @@ typedef struct {
   size_t  cols;
 } Mat;
 
+// Declare the load function
+int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix);
+
 // Generates random data points for a dataset
 void random_data(Mat* dataset, size_t points, size_t dimensions);
 

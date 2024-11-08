@@ -9,7 +9,7 @@ void truncMat(Mat* src, Mat* target, double perc) {
   int const rows = src->rows;
   int const cols = src->cols;
 
-  int newRows = (int)rows*perc;
+  int newRows  = (int)rows*perc;
   target->data = (double*)malloc(newRows*cols*sizeof(double));
   target->rows = newRows;
   target->cols = cols;
