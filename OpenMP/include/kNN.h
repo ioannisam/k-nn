@@ -10,14 +10,23 @@ typedef struct {
   size_t  cols;
 } Mat;
 
-// Declare the load function
+typedef struct {
+  double distance;
+  int    index;
+} Neighbor;
+
+// Loads hdf5 files and directs their output to a Mat struct
 int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix);
 
 // Generates random data points for a dataset
-void random_data(Mat* dataset, size_t points, size_t dimensions);
+void random_input(Mat* dataset, size_t points, size_t dimensions);
+
+// Preforms random projection on matrix M
+void random_projection(Mat* M, int t, Mat* RP);
 
 // Prints a matrix with given number of rows and columns
 void print_matrix(const Mat* matrix);
+void print_neighbors(Neighbor* N, int q, int k);
 
 // Trunicates a matrix keeping only perc% of its rows
 void truncMat(Mat* src, Mat* target, double perc);
@@ -32,10 +41,11 @@ void calculate_distances(const Mat* C, const Mat* Q, double* D);
 // - k: Number of neighbors to find
 // - knn_indices: Output array of k nearest neighbor indices for each point
 // - knn_distances: Output array of distances for the k nearest neighbors
-void findKNN(Mat* C, Mat* Q, Mat* N);
+void findKNN(Mat* C, Mat* Q, Neighbor* N, int k);
 
 // Helper functions for quick-select algorithm
-int  partition  (double* arr, int left, int right);
-void quickSelect(double* arr, int left, int right, int k, double* neighbors);
+void swap(double* arr, int* indices, int i, int j);
+int  partition  (double* arr, int* indices, int left, int right);
+void quickSelect(double* arr, int* indices, int left, int right, int k, Neighbor* neighbors);
 
 #endif // KNN_H

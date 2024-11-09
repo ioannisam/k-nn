@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <cblas.h>
-#include <math.h>
 
 void calculate_distances(const Mat* C, const Mat* Q, double* D) {
 
@@ -34,7 +33,11 @@ void calculate_distances(const Mat* C, const Mat* Q, double* D) {
 
   #pragma omp parallel for
   for(int i=0; i<c; i++) {
-    D[i] = fabs(C2[i] - 2*CQ[i] + Q2[0]);
+    D[i] = C2[i] - 2*CQ[i] + Q2[0];
+
+    if(D[i] < 0.0) {
+      D[i] = 0.0;
+    }
   }
 
   free(C2);

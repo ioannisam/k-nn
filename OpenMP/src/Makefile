@@ -2,13 +2,13 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -I../include -I/usr/include/hdf5 -I/usr/include/openblas -I/usr/include -fopenmp -lmatio -lhdf5
+CFLAGS = -I../include -I/usr/include/hdf5 -I/usr/include/openblas -I/usr/include -fopenmp -lmatio -lhdf5 -lopenblas -lm
 
 # Linker flags (move the libraries to LDFLAGS)
 LDFLAGS = -lmatio -lhdf5 -lopenblas -lm -fopenmp
 
 # Source files
-SRCS = main.c random_input.c print_matrix.c calculate_distance.c quick_select.c find.c truncate.c load.c
+SRCS = main.c input.c print.c calculate_distance.c quick_select.c find.c minimize.c 
 
 # Object files (replace .c with .o)
 OBJS = $(SRCS:.c=.o)

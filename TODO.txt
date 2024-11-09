@@ -1,5 +1,4 @@
 Set percentage and conditions for problem minimization
-Make findKNN showcase indices and distances as well (modify quickSelect.c)
 Update documentation and pdf
 Implement pthreads and openCILK
 Fix data overflow on distance calculation for large datasets (maybe divide with constant or long double)

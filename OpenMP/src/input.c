@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <time.h>
+#include <stdint.h>
+
+
 int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix) {
 
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -43,4 +47,18 @@ int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix) {
   H5Fclose(file_id);
 
   return 0;
+}
+
+void random_input(Mat* matrix, size_t points, size_t dimensions) {
+
+  srand(time(NULL) + (uintptr_t)matrix);
+
+  matrix->data = (double*)malloc(points*dimensions*sizeof(double));
+  matrix->rows = points;
+  matrix->cols = dimensions;
+   
+  for (size_t i = 0; i < points * dimensions; i++) {
+    // Scale to [0, 200], then shift to [-100, 100]
+    matrix->data[i] = ((double)rand()/RAND_MAX)*200.0 - 100.0;
+  }
 }

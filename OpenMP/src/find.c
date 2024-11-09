@@ -4,12 +4,11 @@
 #include <omp.h>
 #include <math.h>
 
-void findKNN(Mat* C, Mat* Q, Mat* N) {
+void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
 
   int const c = C->rows;
-  int const q = N->rows;
+  int const q = Q->rows;
   int const d = C->cols;
-  int const k = N->cols;
 
   #pragma omp parallel for
   for(int i=0; i<q; i++) {
@@ -17,9 +16,14 @@ void findKNN(Mat* C, Mat* Q, Mat* N) {
     double* D = (double*)malloc(c*sizeof(double));
     calculate_distances(C, &(Mat){.rows = 1, .cols = d, .data = Q->data + i*d}, D);
 
-    quickSelect(D, 0, c-1, k, N->data + i*k);
+    int* indices = (int*)malloc(c*sizeof(int));
+    for(int j=0; j<c; j++) {
+      indices[j] = j;
+    }
+
+    quickSelect(D, indices, 0, c-1, k, N + i*k);
     for(int j=0; j<k; j++) {
-      N->data[i*k + j] = sqrt(N->data[i*k + j]);
+      N[i*k + j].distance = sqrt(N[i*k + j].distance);
     }
 
     free(D);

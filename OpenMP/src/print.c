@@ -35,3 +35,15 @@ void print_matrix(const Mat* matrix) {
 
   printf("\n");
 }
+
+void print_neighbors(Neighbor* N, int q, int k) {
+
+  for(int i=0; i<q; i++) {
+    printf("Query Point %d Neighbors:\n", i+1);
+    for(int j=0; j<k; j++) {
+      Neighbor* neighbor = &N[i*k + j];
+      printf("  Neighbor %d -> Index: %d, Distance: %.2f\n", j+1, neighbor->index, neighbor->distance);
+    }
+    printf("\n");
+  }
+} 
