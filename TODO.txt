@@ -1,5 +1,5 @@
 Set percentage and conditions for problem minimization
 Update documentation and pdf
 Implement pthreads and openCILK
-Fix data overflow on distance calculation for large datasets (maybe divide with constant or long double)
+
 Test .hdf5 files

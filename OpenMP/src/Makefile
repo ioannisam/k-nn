@@ -8,7 +8,7 @@ CFLAGS = -I../include -I/usr/include/hdf5 -I/usr/include/openblas -I/usr/include
 LDFLAGS = -lmatio -lhdf5 -lopenblas -lm -fopenmp
 
 # Source files
-SRCS = main.c input.c print.c calculate_distance.c quick_select.c find.c minimize.c 
+SRCS = main.c input.c print.c distance.c select.c find.c minimize.c 
 
 # Object files (replace .c with .o)
 OBJS = $(SRCS:.c=.o)

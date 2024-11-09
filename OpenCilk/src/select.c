@@ -1,6 +1,8 @@
 #include "../include/kNN.h"
 
-void swap(double* arr, int* indices, int i, int j) {
+#include <math.h>
+
+void swap(long double* arr, int* indices, int i, int j) {
   double temp = arr[i];
   arr[i] = arr[j];
   arr[j] = temp;
@@ -10,7 +12,7 @@ void swap(double* arr, int* indices, int i, int j) {
   indices[j] = tempIdx;
 }
 
-int partition(double* arr, int* indices, int left, int right) {
+int partition(long double* arr, int* indices, int left, int right) {
   double pivot = arr[right];
   int pivotIndex = indices[right];
   int i = left;
@@ -25,7 +27,7 @@ int partition(double* arr, int* indices, int left, int right) {
   return i;
 }
 
-void quickSelect(double* arr, int* indices, int left, int right, int k, Neighbor* result) {
+void quickSelect(long double* arr, int* indices, int left, int right, int k, Neighbor* result) {
 
   if(left <= right) {
     int pivotIndex = partition(arr, indices, left, right);
@@ -33,7 +35,7 @@ void quickSelect(double* arr, int* indices, int left, int right, int k, Neighbor
     if(pivotIndex == k-1) {
       // Copy k nearest distances and indices to result
       for(int i=0; i<k; i++) {
-        result[i].distance = arr[i];
+        result[i].distance = sqrt(arr[i]);
         result[i].index = indices[i];
       }
       return;

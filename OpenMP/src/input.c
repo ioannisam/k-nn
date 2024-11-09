@@ -31,7 +31,7 @@ int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix) {
   matrix->rows = dims[0];
   matrix->cols = dims[1];
 
-  matrix->data = (double*)malloc(matrix->rows * matrix->cols * sizeof(double));
+  matrix->data = (double*)malloc(matrix->rows*matrix->cols*sizeof(double));
   if(matrix->data == NULL) {
     printf("Memory allocation failed\n");
     H5Sclose(space_id);
@@ -54,6 +54,8 @@ void random_input(Mat* matrix, size_t points, size_t dimensions) {
   srand(time(NULL) + (uintptr_t)matrix);
 
   matrix->data = (double*)malloc(points*dimensions*sizeof(double));
+  memory_check(matrix->data);
+
   matrix->rows = points;
   matrix->cols = dimensions;
    

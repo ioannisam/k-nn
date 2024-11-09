@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 #include <omp.h>
-#include <math.h>
 
 void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
 
@@ -13,19 +12,20 @@ void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
   #pragma omp parallel for
   for(int i=0; i<q; i++) {
 
-    double* D = (double*)malloc(c*sizeof(double));
+    long double* D = (long double*)malloc(c*sizeof(long double));
+    memory_check(D);
+    
     calculate_distances(C, &(Mat){.rows = 1, .cols = d, .data = Q->data + i*d}, D);
 
     int* indices = (int*)malloc(c*sizeof(int));
+    memory_check(indices);
+
     for(int j=0; j<c; j++) {
       indices[j] = j;
     }
 
     quickSelect(D, indices, 0, c-1, k, N + i*k);
-    for(int j=0; j<k; j++) {
-      N[i*k + j].distance = sqrt(N[i*k + j].distance);
-    }
-
     free(D);
+    free(indices);
   }
 }

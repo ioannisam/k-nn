@@ -1,12 +1,14 @@
 #include "../include/kNN.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
-void print_matrix(const Mat* matrix) {
+void print_matrix(const Mat* matrix, const char* name) {
 
   size_t rows = matrix->rows;
   size_t cols = matrix->cols;
 
+  printf("This is matrix %s \n\n", name);
   printf("        ");
   for(size_t j=0; j<cols; j++) {
     printf("    Point %zu  ", j+1);
@@ -33,5 +35,26 @@ void print_matrix(const Mat* matrix) {
     printf("\n");
   }
 
-  printf("\n");
+  printf("\n\n");
+}
+
+void print_neighbors(Neighbor* N, int q, int k) {
+
+  printf("These are the k Nearest Neighbors for each query: \n\n");
+  for(int i=0; i<q; i++) {
+    printf("Query Point %d Neighbors:\n", i+1);
+    for(int j=0; j<k; j++) {
+      Neighbor* neighbor = &N[i*k + j];
+      printf("  Neighbor %d -> Index: %d, Distance: %.2f\n", j+1, neighbor->index, neighbor->distance);
+    }
+    printf("\n");
+  }
+} 
+
+void memory_check(void* ptr) {
+  if(ptr == NULL) {
+    fprintf(stderr, "Memory Allocation Failed!\n");
+    free(ptr);
+    exit(1);
+  }
 }

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <hdf5.h>
+#include <math.h>
 
 int main() {
   
@@ -18,47 +19,44 @@ int main() {
   printf("\n");
 
   Mat C, Q;
-  random_data(&C, c, d);
-  random_data(&Q, q, d);
+  random_input(&C, c, d);
+  random_input(&Q, q, d);
 
   // load_hdf5("../../Fashion-MNIST.hdf5", "train", &C);
   // load_hdf5("../../Fashion-MNIST.hdf5", "test",  &Q);
 
-  // int c = C.rows;
-  // int q = Q.rows;
-  // int d = C.cols;
-  // int k;
-  // scanf("%d ", &k);
+  print_matrix(&C, "Corpus");
+  print_matrix(&Q, "Queries");
 
-  // printf("This is Matrix Corpus: \n\n");
-  // print_matrix(&C);
-  // printf("\n");
+  Neighbor* N = (Neighbor*)malloc(q*k*sizeof(Neighbor));
+  memory_check(N);
 
-  // Mat newC;
-  // truncMat(&C, &newC, 0.7);
-  // free(C.data);
-  // printf("This is Matrix newC: \n\n");
-  // print_matrix(&newC);
-  // printf("\n");
+  if(d>1000){
+    
+    Mat C_RP, Q_RP;
+    double const e = 0.1;
+    int    const t = 4*log((double)c) / (e*e);
+    printf("Target dimension (t) for random projection: %d\n", t);
+    random_projection(&C, t, &C_RP);
+    random_projection(&Q, t, &Q_RP);
 
-  // printf("This is Matrix Queries: \n\n");
-  // print_matrix(&Q);
-  // printf("\n");
+    print_matrix(&C_RP, "Corpus Projected");
+    print_matrix(&Q_RP, "Queries Projected");
 
-  Mat N;
-  N.rows = q;
-  N.cols = k;
-  N.data = (double*)malloc(q*k*sizeof(double));
+    findKNN(&C_RP, &Q_RP, N, k); 
+    print_neighbors(N, q, k);
 
-  findKNN(&C, &Q, &N); 
+    free(C_RP.data);
+    free(Q_RP.data);
+  } else {
 
-  printf("This is Matrix Neighbors: \n\n");
-  print_matrix(&N);
-  printf("\n");
+    findKNN(&C, &Q, N, k); 
+    print_neighbors(N, q, k);
+  }
 
   free(C.data);
   free(Q.data);
-  free(N.data);
+  free(N);
 
   return 0;
 }

@@ -2,7 +2,32 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <stdint.h>
 #include <string.h>
+#include <math.h>
+#include <cblas.h>
+
+void random_projection(Mat* M, int t, Mat* RP) {
+
+  srand(time(NULL) + (uintptr_t)M);
+  
+  int n = (int)M->rows;
+  int d = (int)M->cols;
+
+  RP->rows = n;
+  RP->cols = t;
+  RP->data = (double*)malloc(n*t*sizeof(double));
+
+  double* R = (double*)malloc(d*t*sizeof(double));
+  for (int i=0; i<d*t; i++) {
+    // Rademacher distribution (-1 or +1)
+    R[i] = (rand()%2 == 0 ? -1 : 1) / sqrt((double)t);
+  }
+  
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, n, t, d, 1.0, M->data, d, R, t, 0.0, RP->data, t);
+
+  free(R);
+}
 
 void truncMat(Mat* src, Mat* target, double perc) {
   
