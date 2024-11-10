@@ -2,10 +2,10 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -I../include -I/usr/include/hdf5 -I/usr/include/openblas -I/usr/include -lmatio -lhdf5 -lopenblas -lm
+CFLAGS = -I../include -I/usr/include/hdf5 -I/usr/include/openblas -I/usr/include -lmatio -lhdf5 -lopenblas -lm -pthread
 
 # Linker flags (move the libraries to LDFLAGS)
-LDFLAGS = -lmatio -lhdf5 -lopenblas -lm
+LDFLAGS = -lmatio -lhdf5 -lopenblas -lm -pthread
 
 # Source files
 SRCS = main.c input.c print.c distance.c select.c find.c minimize.c 

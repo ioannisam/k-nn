@@ -31,7 +31,7 @@ int main() {
   Neighbor* N = (Neighbor*)malloc(q*k*sizeof(Neighbor));
   memory_check(N);
 
-  if(d>1000){
+  if((c*d>1000000 && d>100) || d>500) {
     
     Mat C_RP, Q_RP;
     double const e = 0.1;

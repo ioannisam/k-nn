@@ -16,6 +16,9 @@ int main() {
   scanf("%zu", &d);
   printf("Enter the number of nearest neighbors (k): ");
   scanf("%zu", &k);
+  int num_threads;
+  printf("Enter the number of threads to use: ");
+  scanf("%d", &num_threads);
   printf("\n");
 
   Mat C, Q;
@@ -31,7 +34,7 @@ int main() {
   Neighbor* N = (Neighbor*)malloc(q*k*sizeof(Neighbor));
   memory_check(N);
 
-  if(d>1000){
+  if((c*d>1000000 && d>100) || d>500) {
     
     Mat C_RP, Q_RP;
     double const e = 0.1;
@@ -43,14 +46,14 @@ int main() {
     print_matrix(&C_RP, "Corpus Projected");
     print_matrix(&Q_RP, "Queries Projected");
 
-    findKNN(&C_RP, &Q_RP, N, k); 
+    findKNN(&C_RP, &Q_RP, N, k, num_threads); 
     print_neighbors(N, q, k);
 
     free(C_RP.data);
     free(Q_RP.data);
   } else {
 
-    findKNN(&C, &Q, N, k); 
+    findKNN(&C, &Q, N, k, num_threads); 
     print_neighbors(N, q, k);
   }
 

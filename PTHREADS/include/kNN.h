@@ -2,6 +2,7 @@
 #define KNN_H
 
 #include <stddef.h>
+#include <pthread.h>
 
 // Struct to represent a dataset with data points stored in a row-major format
 typedef struct {
@@ -15,6 +16,16 @@ typedef struct {
   double distance;
   int    index;
 } Neighbor;
+
+// Struct for thread arguments
+typedef struct {
+  Mat* C;
+  Mat* Q;          
+  Neighbor* N;     
+  int k;
+  int start;
+  int end;
+} ThreadArgs;
 
 // Loads hdf5 files and directs their output to a Mat struct
 int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix);
@@ -43,7 +54,8 @@ void calculate_distances(const Mat* C, const Mat* Q, long double* D);
 // - k: Number of neighbors to find
 // - knn_indices: Output array of k nearest neighbor indices for each point
 // - knn_distances: Output array of distances for the k nearest neighbors
-void findKNN(Mat* C, Mat* Q, Neighbor* N, int k);
+void  findKNN(Mat* C, Mat* Q, Neighbor* N, int k, int num_threads);
+void* threadKNN(void* args);
 
 // Helper functions for quick-select algorithm
 void swap       (long double* arr, int* indices, int i, int j);

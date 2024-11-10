@@ -1,5 +1,3 @@
-Set percentage and conditions for problem minimization
-Update documentation and pdf
-Implement pthreads and openCILK
-
-Test .hdf5 files
+Check and enrich pdf and README.md
+Implement OpenCILK
+Verify and test .hdf5 and .mat files
