@@ -1,3 +1,4 @@
-Check and enrich pdf and README.md
 Implement OpenCILK
-Verify and test .hdf5 and .mat files
+Test .hdf5 files
+Check code for consistency
+Check and enrich pdf

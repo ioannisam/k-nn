@@ -2,31 +2,28 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <hdf5.h>
 #include <math.h>
+#include <string.h>
 
 int main() {
   
-  size_t c, q, d, k;
-  printf("Enter the number of corpus points: ");
-  scanf("%zu", &c);
-  printf("Enter the number of query points: ");
-  scanf("%zu", &q);
-  printf("Enter the number of dimensions: ");
-  scanf("%zu", &d);
-  printf("Enter the number of nearest neighbors (k): ");
-  scanf("%zu", &k);
-  int num_threads;
-  printf("Enter the number of threads to use: ");
-  scanf("%d", &num_threads);
-  printf("\n");
+  Mat    C, Q;
+  size_t c, q, d, k, num_threads;
 
-  Mat C, Q;
-  random_input(&C, c, d);
-  random_input(&Q, q, d);
+  char choice;
+  do {
+  printf("Do you want to use random input or load from file? (r for random, f for file): ");
+  scanf(" %c", &choice);
+  } while(choice != 'r' && choice != 'R' && choice != 'f' && choice != 'F');
 
-  // load_hdf5("../../Fashion-MNIST.hdf5", "train", &C);
-  // load_hdf5("../../Fashion-MNIST.hdf5", "test",  &Q);
+  if(choice == 'r' || choice == 'R') {
+    random_input(&C, &Q, &c, &q, &d, &k, &num_threads);
+  } else if(choice == 'f' || choice == 'F') {
+    if(file_input(&C, &Q, &c, &q, &d, &k, &num_threads) != 0) {
+      printf("Failed to load file, exiting program.\n");
+      return -1;
+    }
+  }
 
   print_matrix(&C, "Corpus");
   print_matrix(&Q, "Queries");

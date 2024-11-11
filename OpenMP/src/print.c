@@ -40,7 +40,7 @@ void print_matrix(const Mat* matrix, const char* name) {
 
 void print_neighbors(Neighbor* N, int q, int k) {
 
-  printf("These are the k Nearest Neighbors for each query: \n\n");
+  printf("These are the %d Nearest Neighbors for each query: \n\n", k);
   for(int i=0; i<q; i++) {
     printf("Query Point %d Neighbors:\n", i+1);
     for(int j=0; j<k; j++) {

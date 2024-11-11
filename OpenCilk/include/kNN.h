@@ -16,20 +16,22 @@ typedef struct {
   int    index;
 } Neighbor;
 
-// Loads hdf5 files and directs their output to a Mat struct
-int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix);
-
-// Generates random data points for a dataset
-void random_input(Mat* dataset, size_t points, size_t dimensions);
-
-// Preforms random projection on matrix M, t is the target dimensionality
-void random_projection(Mat* M, int t, Mat* RP);
+// Loads hdf5 or mat files and directs their output to a Mat struct
+int file_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k);
+int load_hdf5(const char* filename, const char* matname, Mat* matrix);
+int load_mat (const char* filename, const char* matname, Mat* matrix);
 
 // Prints a matrix with given number of rows and columns
 void print_matrix(const Mat* matrix, const char* name);
 void print_neighbors(Neighbor* N, int q, int k);
 void memory_check(void* ptr);
 
+// Generates random data points for a dataset
+void random_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k); 
+void random_mat(Mat* dataset, size_t points, size_t dimensions);
+
+// Preforms random projection on matrix M, t is the target dimensionality
+void random_projection(Mat* M, int t, Mat* RP);
 // Trunicates a matrix keeping only perc% of its rows
 void truncMat(Mat* src, Mat* target, double perc);
 

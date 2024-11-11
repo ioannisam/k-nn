@@ -1,14 +1,108 @@
 #include "../include/kNN.h"
 
-#include <hdf5.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <matio.h>
+#include <hdf5.h>
 #include <time.h>
-#include <stdint.h>
+#include <string.h>
 
+int file_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k) {
 
-int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix) {
+  char filename[256];
+
+  printf("Enter the filename (in the test folder): ");
+  scanf("%s", filename);
+
+  char filepath[300];
+  snprintf(filepath, sizeof(filepath), "../../test/%s", filename);
+
+  FILE* file = fopen(filepath, "r");
+  if(!file) {
+    fprintf(stderr, "File does not exist: %s\n", filepath);
+    return -1;
+  } else {
+    fclose(file);
+  }
+
+  if(strstr(filename, ".mat") != NULL) {
+    if(load_mat(filepath, "CORPUS", C) == -1) {
+      fprintf(stderr, "Error loading .mat file.\n");
+      return -1;
+    }
+    if(load_mat(filepath, "QUERY", Q) == -1) {
+      fprintf(stderr, "Error loading .mat file.\n");
+      free(C->data);
+      return -1;
+    }
+  } else if(strstr(filename, ".hdf5") != NULL) {
+    if(load_hdf5(filepath, "CORPUS", C) == -1) {
+      fprintf(stderr, "Error loading .hdf5 file.\n");
+      return -1;
+    }
+    if(load_hdf5(filepath, "QUERY", Q) == -1) {
+      fprintf(stderr, "Error loading .hdf5 file.\n");
+      free(C->data);
+      return -1;
+    }
+  } else {
+    fprintf(stderr, "Unsupported file format. Use .mat or .hdf5.\n");
+    return -1;
+  }
+
+  *c = C->rows;
+  *q = Q->rows;
+  *d = C->cols;
+
+  printf("Enter the number of nearest neighbors (k): ");
+  scanf("%zu", k);
+
+  return 0;
+}
+
+int load_mat(const char* filename, const char* matname, Mat* matrix) {
+
+  mat_t* file = Mat_Open(filename, MAT_ACC_RDONLY);
+  if(file == NULL) {
+    printf("Opening file failed...\n");
+    return -1;
+  }
+  printf("File opened successfully!\n");
+
+  matvar_t* arrayPtr = Mat_VarRead(file, matname);
+  if(arrayPtr == NULL || arrayPtr->data == NULL) {
+    printf("Array pointer or data pointer in array is NULL.\n");
+    if(arrayPtr) {
+      Mat_VarFree(arrayPtr);
+    }
+    Mat_Close(file);
+    return -1;
+  }
+
+  matrix->rows = (size_t)arrayPtr->dims[0];
+  matrix->cols = (size_t)arrayPtr->dims[1];
+
+  matrix->data = (double*)malloc(matrix->rows*matrix->cols*sizeof(double));
+  if(matrix->data == NULL) {
+    printf("Memory allocation for matrix data failed.\n");
+    Mat_VarFree(arrayPtr);
+    Mat_Close(file);
+    return -1;
+  }
+
+  double* dataPtr = (double*)arrayPtr->data;
+  for(size_t i=0; i<matrix->rows*matrix->cols; i++) {
+    matrix->data[i] = dataPtr[i];
+  }
+
+  Mat_VarFree(arrayPtr);
+  Mat_Close(file);
+
+  printf("Matrix %s loaded successfully!\n", matname);
+  return 0;  
+}
+
+int load_hdf5(const char* filename, const char* matname, Mat* matrix) {
 
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
   if(file_id < 0) {
@@ -16,9 +110,9 @@ int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix) {
     return -1;
   }
 
-  hid_t dataset_id = H5Dopen(file_id, dataset_name, H5P_DEFAULT);
+  hid_t dataset_id = H5Dopen(file_id, matname, H5P_DEFAULT);
   if(dataset_id < 0) {
-    printf("Error opening dataset: %s\n", dataset_name);
+    printf("Error opening dataset: %s\n", matname);
     H5Fclose(file_id);
     return -1;
   }
@@ -46,10 +140,27 @@ int load_hdf5(const char* filename, const char* dataset_name, Mat* matrix) {
   H5Dclose(dataset_id);
   H5Fclose(file_id);
 
+  printf("Matrix %s loaded successfully!\n", matname);
   return 0;
 }
 
-void random_input(Mat* matrix, size_t points, size_t dimensions) {
+void random_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k) {
+
+  printf("Enter the number of corpus points: ");
+  scanf("%zu", c);
+  printf("Enter the number of query points: ");
+  scanf("%zu", q);
+  printf("Enter the number of dimensions: ");
+  scanf("%zu", d);
+  printf("Enter the number of nearest neighbors (k): ");
+  scanf("%zu", k);
+  printf("\n");
+
+  random_mat(C, *c, *d);
+  random_mat(Q, *q, *d);
+} 
+
+void random_mat(Mat* matrix, size_t points, size_t dimensions) {
 
   srand(time(NULL) + (uintptr_t)matrix);
 
