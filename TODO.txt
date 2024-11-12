@@ -1,4 +1,3 @@
 Implement OpenCILK
 Test .hdf5 files
-Check code for consistency
-Check and enrich pdf
+README.md ann-benchmarks

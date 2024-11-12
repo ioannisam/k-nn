@@ -36,11 +36,11 @@ int file_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k) {
       return -1;
     }
   } else if(strstr(filename, ".hdf5") != NULL) {
-    if(load_hdf5(filepath, "CORPUS", C) == -1) {
+    if(load_hdf5(filepath, "/train", C) == -1) {
       fprintf(stderr, "Error loading .hdf5 file.\n");
       return -1;
     }
-    if(load_hdf5(filepath, "QUERY", Q) == -1) {
+    if(load_hdf5(filepath, "/test", Q) == -1) {
       fprintf(stderr, "Error loading .hdf5 file.\n");
       free(C->data);
       return -1;

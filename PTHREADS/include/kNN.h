@@ -27,42 +27,55 @@ typedef struct {
   int end;
 } ThreadArgs;
 
-// Loads hdf5 or mat files and directs their output to a Mat struct
+/* input.c*/
+
+// User selects to either load file or to generate random data
 int file_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k, size_t* num_threads);
+
+// Loads hdf5 or mat files and directs their output to a Mat struct
 int load_hdf5(const char* filename, const char* matname, Mat* matrix);
 int load_mat (const char* filename, const char* matname, Mat* matrix);
-
-// Prints a matrix with given number of rows and columns
-void print_matrix(const Mat* matrix, const char* name);
-void print_neighbors(Neighbor* N, int q, int k);
-void memory_check(void* ptr);
 
 // Generates random data points for a dataset
 void random_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k, size_t* num_threads); 
 void random_mat(Mat* dataset, size_t points, size_t dimensions);
 
+/* print.c*/
+
+// Prints a matrix with given number of rows and columns
+void print_matrix(const Mat* matrix, const char* name);
+
+// Prints the kNN and their respective indices
+void print_neighbors(Neighbor* N, int q, int k);
+
+// Routine to ensure memory allocation was successful
+void memory_check(void* ptr);
+
+/* minimize.c */
+
 // Preforms random projection on matrix M, t is the target dimensionality
 void random_projection(Mat* M, int t, Mat* RP);
-// Trunicates a matrix keeping only perc% of its rows
+// Trunicates a matrix keeping only perc% of original its rows
 void truncMat(Mat* src, Mat* target, double perc);
+
+/* distance.c */
 
 // Calculates the distance matrix D between two datasets C and Q
 void calculate_distances(const Mat* C, const Mat* Q, long double* D);
 
+/* find.c */
+
 // Finds the k-nearest neighbors for each point in the dataset
-// Parameters:
-// - D: Distance matrix (flattened 1D array) of size n x n (where n is the number of points in C == Q)
-// - n: Number of data points
-// - k: Number of neighbors to find
-// - knn_indices: Output array of k nearest neighbor indices for each point
-// - knn_distances: Output array of distances for the k nearest neighbors
 void  findKNN(Mat* C, Mat* Q, Neighbor* N, int k, int num_threads);
 void* threadKNN(void* args);
+
+/* select.c */
+
+// Implementation of the quick select algorithm
+void quickSelect(long double* arr, int* indices, int left, int right, int k, Neighbor* neighbors);
 
 // Helper functions for quick-select algorithm
 void swap       (long double* arr, int* indices, int i, int j);
 int  partition  (long double* arr, int* indices, int left, int right);
-void quickSelect(long double* arr, int* indices, int left, int right, int k, Neighbor* neighbors);
 
 #endif // KNN_H
-

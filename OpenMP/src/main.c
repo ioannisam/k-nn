@@ -25,29 +25,50 @@ int main() {
     }
   }
 
-  print_matrix(&C, "Corpus");
-  print_matrix(&Q, "Queries");
+  // print_matrix(&C, "Corpus");
+  // print_matrix(&Q, "Queries");
 
   Neighbor* N = (Neighbor*)malloc(q*k*sizeof(Neighbor));
   memory_check(N);
 
-  if((c*d>1000000 && d>100) || d>500) {
+  double const e = 0.3;
+  int    const t = log((double)c) / (e*e);
+  if(t<d && (c>1000 && d>100)) {
     
     Mat C_RP, Q_RP;
-    double const e = 0.1;
-    int    const t = 4*log((double)c) / (e*e);
     printf("Target dimension (t) for random projection: %d\n", t);
     random_projection(&C, t, &C_RP);
     random_projection(&Q, t, &Q_RP);
 
-    print_matrix(&C_RP, "Corpus Projected");
-    print_matrix(&Q_RP, "Queries Projected");
+    // print_matrix(&C_RP, "Corpus Projected");
+    // print_matrix(&Q_RP, "Queries Projected");
 
     findKNN(&C_RP, &Q_RP, N, k); 
     print_neighbors(N, q, k);
 
+    // printf("\nEXACT\n\n");
+    // findKNN(&C, &Q, N, k); 
+    // print_neighbors(N, q, k);
+
     free(C_RP.data);
     free(Q_RP.data);
+  } else if(c>100000) {
+
+    Mat C_TR;
+    double const perc = 0.7;
+    printf("Truncation percentage: %.1f\n", 1-perc);
+    truncMat(&C, &C_TR, perc);
+
+    // print_matrix(&C_TR, "Corpus Truncated");
+
+    findKNN(&C_TR, &Q, N, k);
+    print_neighbors(N, q, k);
+
+    // printf("\nEXACT\n\n");
+    // findKNN(&C, &Q, N, k); 
+    // print_neighbors(N, q, k);
+
+    free(C_TR.data);
   } else {
 
     findKNN(&C, &Q, N, k); 

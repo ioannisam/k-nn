@@ -1,0 +1,16 @@
+# Ignore the test folder
+test/
+
+# Ignore all .log files
+*.log
+
+# Ignore temporary files created by the OS
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ignore compiled binaries and build files
+*.o
+*.out
+*.so
+/build/
