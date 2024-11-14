@@ -33,12 +33,11 @@ int main() {
 
   double const e = 0.3;
   int    const t = log((double)c) / (e*e);
-  if(t<d && (c>1000 && d>100)) {
+  if(t<d && (c>1000 && d>50)) {
     
     Mat C_RP, Q_RP;
     printf("Target dimension (t) for random projection: %d\n", t);
-    random_projection(&C, t, &C_RP);
-    random_projection(&Q, t, &Q_RP);
+    random_projection(&C, &Q, t, &C_RP, &Q_RP);
 
     // print_matrix(&C_RP, "Corpus Projected");
     // print_matrix(&Q_RP, "Queries Projected");
@@ -55,9 +54,9 @@ int main() {
   } else if(c>100000) {
 
     Mat C_TR;
-    double const perc = 0.7;
-    printf("Truncation percentage: %.1f\n", 1-perc);
-    truncMat(&C, &C_TR, perc);
+    int const r = (int)(10*log(c)) + d;
+    printf("Representative rows (r): %d\n", r);
+    truncMat(&C, r, &C_TR);
 
     // print_matrix(&C_TR, "Corpus Truncated");
 
@@ -70,6 +69,7 @@ int main() {
 
     free(C_TR.data);
   } else {
+    printf("Exact calculation");
 
     findKNN(&C, &Q, N, k); 
     print_neighbors(N, q, k);

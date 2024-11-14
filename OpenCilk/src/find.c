@@ -8,7 +8,7 @@ void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
   int const q = Q->rows;
   int const d = C->cols;
 
-  for(int i=0; i<q; i++) {
+  cilk_for(int i=0; i<q; i++) {
 
     long double* D = (long double*)malloc(c*sizeof(long double));
     memory_check(D);

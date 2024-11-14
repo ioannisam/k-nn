@@ -7,16 +7,21 @@
 #include <math.h>
 #include <cblas.h>
 
-void random_projection(Mat* M, int t, Mat* RP) {
+void random_projection(Mat* C, Mat* Q, int t, Mat* C_RP, Mat* Q_RP) {
 
-  srand(time(NULL) + (uintptr_t)M);
+  srand(time(NULL) + (uintptr_t)C);
   
-  int n = (int)M->rows;
-  int d = (int)M->cols;
+  int c = (int)C->rows;
+  int q = (int)Q->rows;
+  int d = (int)C->cols;
 
-  RP->rows = n;
-  RP->cols = t;
-  RP->data = (double*)malloc(n*t*sizeof(double));
+  C_RP->rows = c;
+  C_RP->cols = t;
+  Q_RP->rows = q;
+  Q_RP->cols = t;
+
+  C_RP->data = (double*)malloc(c*t*sizeof(double));
+  Q_RP->data = (double*)malloc(q*t*sizeof(double));
 
   double* R = (double*)malloc(d*t*sizeof(double));
   for (int i=0; i<d*t; i++) {
@@ -24,39 +29,54 @@ void random_projection(Mat* M, int t, Mat* RP) {
     R[i] = (rand()%2 == 0 ? -1 : 1) / sqrt((double)t);
   }
   
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, n, t, d, 1.0, M->data, d, R, t, 0.0, RP->data, t);
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, c, t, d, 1.0, C->data, d, R, t, 0.0, C_RP->data, t);
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, q, t, d, 1.0, Q->data, d, R, t, 0.0, Q_RP->data, t);
 
   free(R);
 }
 
-void truncMat(Mat* src, Mat* target, double perc) {
-  
-  int const rows = src->rows;
-  int const cols = src->cols;
+void truncMat(Mat* C, int r, Mat* C_TR) {
 
-  int newRows  = (int)rows*perc;
-  target->data = (double*)malloc(newRows*cols*sizeof(double));
-  target->rows = newRows;
-  target->cols = cols;
+  int c = C->rows;
+  int d = C->cols;
 
-  int* indices = (int*)malloc(rows*sizeof(int));
-  for(int i=0; i<rows; i++) {
-    indices[i] = i;
-  }
+  C_TR->rows = r;
+  C_TR->cols = d;
+  C_TR->data = (double*)malloc(r*d*sizeof(double));
 
   srand(time(NULL));
-  for(int i=rows-1; i>0; i--) {
-    int j = rand()%(i+1);
+  int idx = rand()%c;
+  memcpy(C_TR->data, C->data + idx*d, d*sizeof(double));
 
-    int temp   = indices[i];
-    indices[i] = indices[j];
-    indices[j] = temp;
+  double* min_distances = (double*)malloc(c*sizeof(double));
+  for(int i=0; i<c; i++) {
+    double dist = 0.0;
+    for(int j=0; j<d; j++) {
+      double diff = C->data[i*d + j] - C_TR->data[j];
+      dist += diff*diff;
+    }
+    min_distances[i] = dist;
   }
 
-  for(int i=0; i<newRows; i++) {
-    int rowIndex = indices[i];
-    memcpy(target->data + i*cols, src->data + rowIndex*cols, cols*sizeof(double));
+  for(int i=1; i<r; i++) {
+    double max_dist = -1.0;
+    int max_idx = -1;
+    for(int j=0; j<c; j++) {
+      double dist = 0.0;
+      for(int k=0; k<d; k++) {
+        double diff = C->data[j*d + k] - C_TR->data[(i-1)*d + k];
+        dist += diff*diff;
+      }
+      if(dist < min_distances[j]) {
+        min_distances[j] = dist;
+      }
+      if(min_distances[j] > max_dist) {
+        max_dist = min_distances[j];
+        max_idx = j;
+      }
+    }
+    memcpy(C_TR->data + i*d, C->data + max_idx*d, d*sizeof(double));
   }
 
-  free(indices);
+  free(min_distances);
 }

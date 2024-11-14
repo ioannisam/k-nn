@@ -30,14 +30,14 @@ typedef struct {
 /* input.c*/
 
 // User selects to either load file or to generate random data
-int file_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k, size_t* num_threads);
+int  file_input  (Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k, size_t* num_threads);
+void random_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k, size_t* num_threads); 
 
 // Loads hdf5 or mat files and directs their output to a Mat struct
 int load_hdf5(const char* filename, const char* matname, Mat* matrix);
 int load_mat (const char* filename, const char* matname, Mat* matrix);
 
 // Generates random data points for a dataset
-void random_input(Mat* C, Mat* Q, size_t* c, size_t* q, size_t* d, size_t* k, size_t* num_threads); 
 void random_mat(Mat* dataset, size_t points, size_t dimensions);
 
 /* print.c*/
@@ -54,9 +54,10 @@ void memory_check(void* ptr);
 /* minimize.c */
 
 // Preforms random projection on matrix M, t is the target dimensionality
-void random_projection(Mat* M, int t, Mat* RP);
-// Trunicates a matrix keeping only perc% of original its rows
-void truncMat(Mat* src, Mat* target, double perc);
+void random_projection(Mat* C, Mat* Q, int t, Mat* C_RP, Mat* Q_RP);
+
+// Trunicates a matrix keeping t representative rows
+void truncMat(Mat* C, int r, Mat* C_RP);
 
 /* distance.c */
 
@@ -75,7 +76,7 @@ void* threadKNN(void* args);
 void quickSelect(long double* arr, int* indices, int left, int right, int k, Neighbor* neighbors);
 
 // Helper functions for quick-select algorithm
-void swap       (long double* arr, int* indices, int i, int j);
-int  partition  (long double* arr, int* indices, int left, int right);
+void swap     (long double* arr, int* indices, int i, int j);
+int  partition(long double* arr, int* indices, int left, int right);
 
 #endif // KNN_H

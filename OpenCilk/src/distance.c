@@ -12,7 +12,7 @@ void calculate_distances(const Mat* C, const Mat* Q, long double* D) {
   double  Q2;
   memory_check(C2); 
 
-  for(int i=0; i<c; i++) {
+  cilk_for(int i=0; i<c; i++) {
     double sum = 0.0;
     for(int j=0; j<d; j++) {
       sum += C->data[i*d + j]*C->data[i*d + j];
@@ -31,7 +31,7 @@ void calculate_distances(const Mat* C, const Mat* Q, long double* D) {
   
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, c, 1, d, 1.0, C->data, d, Q->data, 1, 0.0, CQ, 1);
 
-  for(int i=0; i<c; i++) {
+  cilk_for(int i=0; i<c; i++) {
 
     D[i] = C2[i] - 2*CQ[i] + Q2;
     if(D[i] < 0.0) {
