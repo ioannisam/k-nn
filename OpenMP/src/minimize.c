@@ -6,6 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include <cblas.h>
+#include <omp.h>
 
 void random_projection(Mat* C, Mat* Q, int t, Mat* C_RP, Mat* Q_RP) {
 
@@ -45,38 +46,55 @@ void truncMat(Mat* C, int r, Mat* C_TR) {
   C_TR->data = (double*)malloc(r*d*sizeof(double));
 
   srand(time(NULL));
-  int idx = rand()%c;
-  memcpy(C_TR->data, C->data + idx*d, d*sizeof(double));
 
-  double* min_distances = (double*)malloc(c*sizeof(double));
-  for(int i=0; i<c; i++) {
+  int first_idx = rand()%c;
+  memcpy(C_TR->data, C->data + first_idx*d, d*sizeof(double));
+
+  double* distances = (double*)malloc(c*sizeof(double));
+  #pragma omp parallel for
+  for (int i=0; i<c; i++) {
     double dist = 0.0;
-    for(int j=0; j<d; j++) {
+    for (int j=0; j<d; j++) {
       double diff = C->data[i*d + j] - C_TR->data[j];
       dist += diff*diff;
     }
-    min_distances[i] = dist;
+    distances[i] = dist;
   }
 
   for(int i=1; i<r; i++) {
-    double max_dist = -1.0;
-    int max_idx = -1;
+    double total_dist = 0.0;
+
+    #pragma omp parallel for reduction(+:total_dist)
+    for (int j=0; j<c; j++) {
+      total_dist += distances[j];
+    }
+
+    double rand_dist = ((double)rand()/RAND_MAX) * total_dist;
+    double cumulative_dist = 0.0;
+    int    next_idx = 0;
+
+    for(int j=0; j<c; j++) {
+      cumulative_dist += distances[j];
+      if(cumulative_dist >= rand_dist) {
+        next_idx = j;
+        break;
+      }
+    }
+
+    memcpy(C_TR->data + i*d, C->data + next_idx*d, d*sizeof(double));
+
+    #pragma omp parallel for
     for(int j=0; j<c; j++) {
       double dist = 0.0;
       for(int k=0; k<d; k++) {
-        double diff = C->data[j*d + k] - C_TR->data[(i-1)*d + k];
+        double diff = C->data[j*d + k] - C_TR->data[i*d + k];
         dist += diff*diff;
       }
-      if(dist < min_distances[j]) {
-        min_distances[j] = dist;
-      }
-      if(min_distances[j] > max_dist) {
-        max_dist = min_distances[j];
-        max_idx = j;
+      if(dist < distances[j]) {
+        distances[j] = dist;
       }
     }
-    memcpy(C_TR->data + i*d, C->data + max_idx*d, d*sizeof(double));
   }
 
-  free(min_distances);
+  free(distances);
 }

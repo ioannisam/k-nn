@@ -2,6 +2,7 @@
 #define KNN_H
 
 #include <stddef.h>
+#include <time.h>
 
 // Struct to represent a dataset with data points stored in a row-major format
 typedef struct {
@@ -67,4 +68,15 @@ void quickSelect(long double* arr, int* indices, int left, int right, int k, Nei
 void swap     (long double* arr, int* indices, int i, int j);
 int  partition(long double* arr, int* indices, int left, int right);
 
+/* test.c */
+
+// Calculates execution time of findKNN
+double duration(clock_t start);
+
+// Calculates queries per second
+double qps(clock_t start, size_t q);
+
+// Calculates recall
+double recall(Mat* C, Mat* Q, Neighbor* N, int k);
+int compare(const void* a, const void* b);
 #endif // KNN_H
