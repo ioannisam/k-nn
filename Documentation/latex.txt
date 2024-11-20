@@ -59,11 +59,11 @@
 \begin{abstract}
 This C project implements the k-NN algorithm to identify the nearest neighbors of a set of query points \( Q \) relative to a corpus set \( C \) in a high-dimensional space. 
 Given a corpus of \( c \) points and \( q \) query points, both in \( d \)-dimensional space, the algorithm efficiently determines the k-nearest neighbors for each query point. 
-The implementation leverages optimized matrix operations, parallel processing, and approximation techniques to handle large datasets and high-dimensional distance calculations efficiently.
+The implementation uses optimized matrix operations, parallel processing, and approximation techniques to handle large datasets and high-dimensional distance calculations efficiently.
 \end{abstract}
 
 \section{Problem Statement}
-The objective of this project is to implement a subroutine that computes the \textbf{k-nearest neighbors (k-NN)} of each query point in \( Q \) based on their distances to the data points in \( C \).
+The objective of this project is to implement a subroutine that computes the \textbf{k-nearest neighbors (k-NN)} of each query point in \( Q \) based on their distances to the data points in \( C \). \textit{This implementation also works when  \(Q=C\).}
 
 To calculate the distances, we use the following formula:
 
@@ -78,13 +78,13 @@ where:
     \item \( D \) is the distance matrix containing distances between each pair of points from \( C \) and \( Q \).
 \end{itemize}
 
-Each row of the \( q\times c \) matrix \( D \) contains distances from a query point to all corpus points. We then use the quickselect algorithm to retrieve the k smallest distances and their corresponding indices in \( O(n) \) time.
+Each row of the \( q\times c \) matrix \( D \) contains distances from a query point to all corpus points. We then use the quickselect algorithm to retrieve the k smallest distances and their corresponding indices in \( O(n) \) time. 
 
 \section{Example}
 In this section, we illustrate the process of generating random data points, calculating the distance matrix, and finding the k-NN using C code snippets. For clarity, let's assume we have sets \( C \) and \( Q \) in \( d \)-dimensional space.
 
 \subsection{Input}
-We begin by either generating random data points for both the dataset \( C \) and query set \( Q \) or by reading a .mat file. The following function creates a dataset with a specified number of points and dimensions:
+We begin by either generating random data points for both the dataset \( C \) and query set \( Q \) or by reading a .mat file (or .hdf5). The following function creates a dataset with a specified number of points and dimensions:
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Generating random data points}]
@@ -134,19 +134,19 @@ For smaller datasets, computing the distance matrix is straightforward. Using th
 \begin{equation}
     D = \sqrt{C^2 - 2 C Q^T + (Q^2)^T}
 \end{equation}
-we compute matrix \( D \) (queries $\times$ corpus) that represents the Euclidean distance for each query \( q \) to each corpus point \( c \).
+we compute matrix \( D \) (queries $\times$ corpus) that represents the Euclidean distance for each query \( q \) to each corpus point \( c \). In larger datasets, we typically compute matrix \( D \) in chunks of size 300, as this size was found to be optimal for balancing parallelism on our machine while avoiding unnecessary overhead. Further details on the calculation of matrix \( D \) for larger datasets will be provided in the following chapter. For smaller input datasets, matrix \( D \) is computed in its entirety.
+
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Calculating distances using CBLAS}]
-void calculate_distances(const Mat* C, const Mat* Q, long double* D) {
+void calculate_distances(const Mat* C, const Mat* Q, int start_idx, int end_idx, long double* D) {
 
-  int c = (int)C->rows;
-  int d = (int)C->cols;
+  int c = C->rows;
+  int d = C->cols;
+  int batch_size = end_idx - start_idx;
 
   double* C2 = (double*)malloc(c*sizeof(double));
-  double  Q2;
-  memory_check(C2); 
-
+  memory_check(C2);
   #pragma omp parallel for
   for(int i=0; i<c; i++) {
     double sum = 0.0;
@@ -156,27 +156,35 @@ void calculate_distances(const Mat* C, const Mat* Q, long double* D) {
     C2[i] = sum;
   }
 
-  double sum = 0.0;
-  for(int j=0; j<d; j++) {
-    sum += Q->data[j]*Q->data[j];
-  }
-  Q2 = sum; 
-
-  double* CQ = (double*)malloc(c*sizeof(double));
-  memory_check(CQ);
-  
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, c, 1, d, 1.0, C->data, d, Q->data, 1, 0.0, CQ, 1);
-
+  double* Q2 = (double*)malloc(batch_size*sizeof(double));
+  memory_check(Q2);
   #pragma omp parallel for
-  for(int i=0; i<c; i++) {
+  for(int i=0; i<batch_size; i++) {
+    double sum = 0.0;
+    for(int j=0; j<d; j++) {
+      sum += Q->data[(start_idx+i)*d + j] * Q->data[(start_idx+i)*d + j];
+    }
+    Q2[i] = sum;
+  }
 
-    D[i] = C2[i] - 2*CQ[i] + Q2;
-    if(D[i] < 0.0) {
-      D[i] = 0.0;
+  double* CQ = (double*)malloc(c*batch_size*sizeof(double));
+  memory_check(CQ);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, c, batch_size, d,
+              1.0, C->data, d, Q->data + start_idx * d, d, 0.0, CQ, batch_size);
+
+  #pragma omp parallel for collapse(2)
+  for(int i=0; i<c; i++) {
+    for(int j=0; j<batch_size; j++) {
+      D[j*c + i] = C2[i] - 2.0*CQ[i*batch_size + j] + Q2[j];
+      if(D[j*c + i] < 0.0) {
+        D[j*c + i] = 0.0;
+      }
     }
   }
 
   free(C2);
+  free(Q2);
   free(CQ);
 }
 \end{lstlisting}
@@ -198,6 +206,30 @@ Each entry \( D[i][j] \) in this matrix represents the distance between the \( i
 \subsection{Finding k-Nearest Neighbors}
 To find the k-nearest neighbors, we use the \textbf{quickselect} algorithm, which efficiently identifies the smallest k elements in \( O(n) \) time and returns their values, as well as their indices. The `findKNN` function calculates the distance from every query to every corpus point, finds the k-nearest neighbors, and stores them in matrix \( N \).
 
+\begin{figure}[H]
+\begin{lstlisting}[language=C, caption={Quick Select algorithm implementation}]
+void quickSelect(long double* arr, int* indices, int left, int right, int k, Neighbor* result) {
+
+  if(left <= right) {
+    int pivotIndex = partition(arr, indices, left, right);
+
+    if(pivotIndex == k-1) {
+
+      for(int i=0; i<k; i++) {
+        result[i].distance = sqrt(arr[i]);
+        result[i].index = indices[i];
+      }
+      return;
+    } else if(k-1 < pivotIndex) {
+      quickSelect(arr, indices, left, pivotIndex-1, k, result);
+    } else {
+      quickSelect(arr, indices, pivotIndex+1, right, k, result);
+    }
+  }
+}
+\end{lstlisting}
+\end{figure}
+
 In this example, we find the 3 nearest neighbors (k = 3) for each point in \( Q \) based on the distance matrix \( D \):
 
 \[
@@ -210,13 +242,15 @@ N = \begin{bmatrix}
 \]
 
 In this matrix:
+
 - The first row indicates that for the first query point, the 3 nearest neighbors are 56.30, 7.05, and 76.74, with indexes 0, 1, and 4 respectively.
+
 - The second row shows the 3 nearest neighbors for the second query point, and so forth.
 
 \section{Fine Lines}
 
 \subsection{Parallelism}
-If matrices \( C \) and \( Q \) are very large, there is a chance that matrix \( D \) (queries $\times$ corpus) does not fit in memory. To combat this, we calculate matrix \( D \) in segments (chunks), use each slice to find the k-NN of the corresponding query, and then discard the slice to make room in memory. This way, we prevent running out of memory. To boost execution speed, we parallelize the workload of computing the \( D \) chunk and running quickselect on it. We also use parallelism in order to calculate distances quicker. Chunk size is set to be small enough to be easily stored in memory and large enough to avoid unnesecessary overhead.
+If matrices \( C \) and \( Q \) are very large, there is a chance that matrix \( D \) (queries $\times$ corpus) does not fit in memory. To combat this, we calculate matrix \( D \) in segments (chunks), use each chunk to find the k-NN of the corresponding queries, and then discard the chunk to make room in memory. This way, we prevent running out of memory. To boost execution speed, we parallelize the workload of computing the \( D \) chunk and running quickselect on it. We also use parallelism in order to calculate distances quicker. Chunk size is set to be small enough to be easily stored in memory and large enough to avoid unnecessary overhead.
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Routine for computing the k smallest distances}]
@@ -265,7 +299,15 @@ void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
 \subsection{Problem Minimization}
 
 When the datasets become arbitrarily large, we encounter some problems:
+
 A problem that arises as we scale up is computational complexity. To remedy the extreme computational cost and the curse of high dimensions, we use random projection, based on the Johnson–Lindenstrauss lemma, which proves we can reduce dimensions by projecting our matrices to lower dimensions, with minimal error.
+
+The Johnson–Lindenstrauss Lemma asserts that, given a set of points in a high-dimensional space, it is possible to project them onto a lower-dimensional space such, that the Euclidean distances between the points are approximately preserved. Specifically, for a set of \( n \) points in \( d \)-dimensional space, we can project them onto a subspace of \( t \)-dimensions where 
+\[
+t = O\left(\frac{\log n}{\epsilon^2}\right),
+\]
+and the distances between the points will be distorted by no more than a factor of \( 1 \pm \epsilon \), with high probability. This dimensionality reduction is crucial for large datasets, as it allows us to reduce the size of the problem without a significant loss in the accuracy of distance calculations.
+
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Routine for applying Random Projection}]
@@ -299,7 +341,24 @@ void random_projection(Mat* C, Mat* Q, int t, Mat* C_RP, Mat* Q_RP) {
 \end{lstlisting}
 \end{figure}
 
-When \( c \gg d \), we cannot reduce the problem with random projection, as the target dimension \( t \) would exceed the original dimensionality \( d \). Instead, we truncate the matrix \( C \), retaining a set of representative rows, using k-means++ initialization. This method chooses rows based on their distance to previously selected rows, ensuring a spread-out, informative subset.
+When \( c \gg d \), we cannot reduce the problem with random projection, as the target dimension \( t \) would exceed the original dimensionality \( d \). Instead, we truncate the matrix \( C \), retaining a set of representative rows, using k-means++ initialization and k-means clustering.  
+
+\textbf{k-means clustering:} Clustering is a technique that aims to group a set of data points into clusters, such that points within a cluster are similar. The similarity is typically measured using a distance metric, in this case the Euclidean distance. The idea is to partition the dataset into clusters in a way that maximizes the cohesion within clusters and the separation between different clusters.
+
+\begin{enumerate}
+    \item \textbf{Initialization}: Randomly select \( k \) points from the dataset to serve as initial cluster centroids.
+    \item \textbf{Assignment step}: Each data point is assigned to the nearest centroid based on Euclidean distance, thus forming \( k \) clusters.
+    \item \textbf{Update step}: The centroids are updated by calculating the mean of all points in each cluster. This new mean becomes the new centroid for that cluster.
+    \item \textbf{Repeat}: The assignment and update steps are repeated until convergence, which occurs when the centroids no longer change significantly.
+\end{enumerate}
+
+\textbf{k-means++ initialization:} The main challenge in k-means is selecting good initial centroids, as poor initialization can lead to suboptimal clustering results. To address this, k-means++ was introduced as an enhancement to k-means to select better initial centroids and improve the algorithm’s convergence rate.
+
+\begin{enumerate}
+    \item \textbf{First centroid selection}: The first centroid is chosen randomly from the dataset.
+    \item \textbf{Subsequent centroids selection}: For each remaining centroid, the probability of selecting a data point is proportional to its squared distance from the nearest already selected centroid. This ensures that the selected centroids are spread out across the data, capturing the overall structure of the dataset.
+    \item \textbf{Repeat}: This process is repeated until \( k \) centroids have been selected.
+\end{enumerate}
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Matrix Truncation}]
@@ -368,6 +427,8 @@ void truncMat(Mat* C, int r, Mat* C_TR) {
 \end{lstlisting}
 \end{figure}
 
+\phantom{This is a placeholder}
+
 It is of great importance to choose the target dimensionality \( t \) carefully when using random projection. Based on the lemma, \( t = \frac{ \log(c)}{\epsilon^2} \), where \( \epsilon \) is the allowed error and \( c \) is the number of corpus points, is a good approximation to retain accuracy while significantly reducing computational cost. Note that target dimensionality \( t \) does not depend on the actual dimensionality \(d\). Moreover, the number of representative rows selected when truncating the matrix \( C \) affects the accuracy of our calculations. A heuristic metric that balances both speed and accuracy is given by \( r = 100 \cdot \log(c) + 10d \).
 
 Applying these minimization techniques is valuable only when the dataset is large. If the dataset is relatively small, we proceed with exact calculation.
@@ -408,51 +469,113 @@ Applying these minimization techniques is valuable only when the dataset is larg
 \end{figure}
 
 \subsection{Details}
-We avoid computing the square root of the distances we calculate in `calculate_distances`. Instead, we compare squared distances in the quickselect function (since for \( a > 0 \) and \( b > 0 \): \( a > b \iff a^2 > b^2 \)) and then return their square root. This way, instead of \( c \times q \) sqrt calculations, we make \( k \times q \) (substantially less).
+To improve computational efficiency, we avoid calculating the square root of distances in the `calculate-distances` function. Instead, squared distances are compared directly within the `quickselect` function. This is mathematically valid because, for any \( a > 0 \) and \( b > 0 \), the inequality \( a > b \) is equivalent to \( a^2 > b^2 \). The square root is computed only for the final k-nearest neighbors. This approach reduces the number of square root calculations from \( c \times q \) (one for each distance) to \( k \times q \), yielding a significant performance improvement.
+
+While this method enhances runtime efficiency, it requires careful handling of numerical limits. The IEEE 754 double-precision format can reliably represent numbers up to approximately \( 10^{308} \). However, squaring large elements in matrices \( C \) and \( Q \) may cause intermediate values to approach or exceed this limit, potentially resulting in overflow. To mitigate this, we use the `long double` data type, which provides a wider range (up to approximately \( 10^{4932} \) in most implementations) to safely handle large squared norms.
+
+\section{Testing}
+To evaluate the performance and validity of our implementation, we employed three metrics: \textbf{Accuracy}, \textbf{Queries per Second}, and \textbf{Execution Time}. We also used Matlab's kNN routine for further testing.
+
+\subsection{Accuracy}
+To assess the algorithm's accuracy, we selected a random sample of queries and calculated their exact k-nearest neighbors. The accuracy was determined by computing the deviation of approximate results from exact results using the formula:
+
+\[
+\text{Error} = \frac{|d_{\text{approx}} - d_{\text{exact}}|}{|d_{\text{exact}}|}
+\]
+
+The cumulative error for all samples was averaged, and the accuracy was computed as:
+
+\[
+\text{Accuracy} = 1 - \text{Average Error}
+\]
+
+We avoided recall-based metrics that rely on index comparisons because the minimization techniques (e.g., representative rows) modify the indexing, making recall unsuitable. This adjustment ensures accuracy is evaluated based solely on the deviation in distances.
 
 \begin{figure}[H]
-\begin{lstlisting}[language=C, caption={Routine for applying Random Projection}]
-void quickSelect(long double* arr, int* indices, int left, int right, int k, Neighbor* result) {
+\begin{lstlisting}[language=C, caption={Routine for Calculating Accuracy}]
+double recall(Mat* C, Mat* Q, Neighbor* N, int k) {
 
-  if(left <= right) {
-    int pivotIndex = partition(arr, indices, left, right);
+  double accuracy = 0.0;
 
-    if(pivotIndex == k-1) {
+  Mat Q_TEST;
+  Q_TEST.rows = SAMPLE;
+  Q_TEST.cols = Q->cols;
+  Q_TEST.data = (double*)malloc(SAMPLE * Q->cols * sizeof(double));
+  memory_check(Q_TEST.data);
+  memcpy(Q_TEST.data, Q->data, SAMPLE * Q->cols * sizeof(double));
 
-      for(int i=0; i<k; i++) {
-        result[i].distance = sqrt(arr[i]);
-        result[i].index = indices[i];
+  Neighbor* N_TEST = (Neighbor*)malloc(SAMPLE * k * sizeof(Neighbor));
+  memory_check(N_TEST);
+  findKNN(C, &Q_TEST, N_TEST, k);
+
+  for(int i=0; i<SAMPLE; i++) {
+    qsort(N + i*k, k, sizeof(Neighbor), compare);
+    qsort(N_TEST + i*k, k, sizeof(Neighbor), compare);
+  }
+
+  double error = 0.0;
+  for(int i=0; i<SAMPLE; i++) {
+    for(int j=0; j<k; j++) {
+      double approx = N[i*k + j].distance;
+      double exact  = N_TEST[i*k + j].distance;
+
+      if(exact != 0) {
+        error += fabs(approx-exact) / fabs(exact);
       }
-      return;
-    } else if(k-1 < pivotIndex) {
-      quickSelect(arr, indices, left, pivotIndex-1, k, result);
-    } else {
-      quickSelect(arr, indices, pivotIndex+1, right, k, result);
     }
   }
+
+  double average = error / (SAMPLE*k);
+  accuracy = 1.0 - average;
+
+  free(Q_TEST.data);
+  free(N_TEST);
+
+  return accuracy;
+}
+\end{lstlisting}
+\end{figure}
+
+\phantom{This is a placeholder}
+
+\subsection{Queries per Second}
+This metric measures the algorithm's throughput by dividing the total number of queries processed by the elapsed time. It reflects how many queries can be resolved per second.
+
+\begin{figure}[H]
+\begin{lstlisting}[language=C, caption={Routine for Calculating Queries per Second}]
+double qps(struct timespec start, size_t q) {
+
+  double elapsed = duration(start);
+  return q/elapsed;
+}
+\end{lstlisting}
+\end{figure}
+
+\subsection{Execution Time}
+Execution time is the total time taken by the algorithm to process the dataset, from the start of computation to the end of processing. It is a straightforward yet critical metric for benchmarking performance.
+
+\begin{figure}[H]
+\begin{lstlisting}[language=C, caption={Routine for Calculating Elapsed Time}]
+double duration(struct timespec start) {
+
+  struct timespec end;
+  clock_gettime(CLOCK_MONOTONIC, &end);
+
+  double elapsed = (end.tv_sec-start.tv_sec) + (end.tv_nsec-start.tv_nsec)/1e9;
+  return elapsed;
 }
 \end{lstlisting}
 \end{figure}
 
 \section{Summary}
-The following steps summarize the process:
-
-\begin{enumerate}[label=\alph*.]
-    \item Calculate squared terms for data points \( C \) and query points \( Q \).
-    \item Compute the dot product \( C Q^T \) to facilitate the distance calculation.
-    \item Combine results to obtain the distance matrix \( D \).
-    \item Identify the k-nearest neighbors for each query point using quickselect.
-\end{enumerate}
-
-\section{Conclusion}
-This project demonstrates an efficient k-NN algorithm implementation that uses advanced matrix operations and sorting techniques. This approach enables accurate neighbor searches in high-dimensional spaces, achieving a balance between clarity and computational efficiency.
+This project implements an efficient k-NN algorithm by combining advanced matrix operations, sorting techniques, and approximation methods. By sacrificing a small degree of accuracy, the algorithm achieves substantial speedups, especially in high-dimensional datasets. Additionally, parallelism is leveraged to further improve scalability. This balanced approach demonstrates the practicality of neighbor searches in large-scale and high-dimensional scenarios, ensuring both computational efficiency and flexibility.
 
 \section{Tools}
 In this project, we used the following tools:
 \begin{enumerate}
     \item The C programming language, its compiler, and standard libraries.
     \item The linear algebra library OpenBLAS.
-    \item The file reading libraries HDF5 and Matio.
+    \item The file reading libraries HDF5 and Matio, as well as Matlab.
     \item The parallel programming libraries OpenMP, OpenCilk, and Pthreads.
     \item The version controll sftware Git.
     \item The AI assistant Github Copilot.
@@ -462,19 +585,30 @@ In this project, we used the following tools:
 
 \section{Sources}
 
-Random Projection:
+\textbf{C Data Types:}
+\begin{itemize}
+    \item  \url{https://en.wikipedia.org/wiki/Long_double}
+    \item  \url{https://www.tutorialspoint.com/cprogramming/c_data_types.htm}
+\end{itemize}
+    
+\textbf{Random Projection:}
 \begin{itemize}
     \item  \url{https://en.wikipedia.org/wiki/Random_projection}
 \end{itemize}
 
-Johnson-Lindenstrauss Lemma:
+\textbf{k-means Clustering:}
+\begin{itemize}
+    \item \url{https://en.wikipedia.org/wiki/K-means_clustering}
+\end{itemize}
+
+\textbf{Johnson-Lindenstrauss Lemma:}
 \begin{itemize}
     \item \url{https://en.wikipedia.org/wiki/Johnson%E2%80%93Lindenstrauss_lemma}
     \item \url{https://cs.stanford.edu/people/mmahoney/cs369m/Lectures/lecture1.pdf}
     \item \url{https://www.youtube.com/watch?v=j9qbuGSjzeE}
 \end{itemize}
 
-ANN Benchmarks:
+\textbf{ANN Benchmarks:}
 \begin{itemize}
     \item \url{https://github.com/erikbern/ann-benchmarks?tab=readme-ov-file}
 \end{itemize}

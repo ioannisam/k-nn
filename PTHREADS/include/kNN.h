@@ -47,12 +47,17 @@ void memory_check(void* ptr);
 void random_projection(Mat* C, Mat* Q, int t, Mat* C_RP, Mat* Q_RP);
 
 // Trunicates a matrix keeping t representative rows
-void truncMat(Mat* C, int r, Mat* C_RP, int num_threads);
+void  truncMat(Mat* C, int r, Mat* C_RP, int num_threads);
+void* compute_distances(void* arg);
+void* compute_total_distance(void* arg);
 
 /* distance.c */
 
 // Calculates the distance matrix D between two datasets C and Q
 void calculate_distances(const Mat* C, const Mat* Q, int start_idx, int end_idx, long double* D);
+void* compute_C2(void* args);
+void* compute_Q2(void* args);
+void* compute_D (void* args);
 
 /* find.c */
 
@@ -72,10 +77,10 @@ int  partition(long double* arr, int* indices, int left, int right);
 /* test.c */
 
 // Calculates execution time of findKNN
-double duration(clock_t start);
+double duration(struct timespec start);
 
 // Calculates queries per second
-double qps(clock_t start, size_t q);
+double qps(struct timespec start, size_t q);
 
 // Calculates recall
 double recall(Mat* C, Mat* Q, Neighbor* N, int k, int num_threads);

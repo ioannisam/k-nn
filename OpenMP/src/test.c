@@ -8,18 +8,19 @@
 
 #define SAMPLE 100
 
-double duration(clock_t start) {
-  
-  clock_t end = clock();
-  double elapsed = ((double)end-start) / CLOCKS_PER_SEC;
-  return elapsed; 
+double duration(struct timespec start) {
+
+  struct timespec end;
+  clock_gettime(CLOCK_MONOTONIC, &end); 
+
+  double elapsed = (end.tv_sec-start.tv_sec) + (end.tv_nsec-start.tv_nsec)/1e9;
+  return elapsed;
 }
 
-double qps(clock_t start, size_t q) {
+double qps(struct timespec start, size_t q) {
 
-  clock_t end = clock();
-  double  elapsed = ((double)(end-start)) / CLOCKS_PER_SEC;
-  return q/elapsed;
+  double elapsed = duration(start);
+  return q/elapsed; 
 }
 
 int compare(const void* a, const void* b) {

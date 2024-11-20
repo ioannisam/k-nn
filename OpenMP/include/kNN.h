@@ -71,10 +71,10 @@ int  partition(long double* arr, int* indices, int left, int right);
 /* test.c */
 
 // Calculates execution time of findKNN
-double duration(clock_t start);
+double duration(struct timespec start);
 
 // Calculates queries per second
-double qps(clock_t start, size_t q);
+double qps(struct timespec start, size_t q);
 
 // Calculates recall
 double recall(Mat* C, Mat* Q, Neighbor* N, int k);

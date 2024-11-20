@@ -32,13 +32,14 @@ int main() {
   double const e = 0.3;
   int    const t = log((double)c) / (e*e);
   double elapsed = 0, speed = 0, accuracy = 0;
+  struct timespec start;
+  clock_gettime(CLOCK_MONOTONIC, &start);
   if(t<d && (c>1000 && d>50)) {
     
     Mat C_RP, Q_RP;
     printf("Target dimension (t) for random projection: %d\n", t);
     random_projection(&C, &Q, t, &C_RP, &Q_RP);
 
-    clock_t start = clock();
     findKNN(&C_RP, &Q_RP, N, k, num_threads); 
     elapsed  = duration(start);
     speed    = qps(start, q);
@@ -54,7 +55,6 @@ int main() {
     printf("Representative rows (r): %d\n", r);
     truncMat(&C, r, &C_TR, num_threads);
 
-    clock_t start = clock();
     findKNN(&C_TR, &Q, N, k, num_threads);
     elapsed  = duration(start);
     speed    = qps(start, q);
@@ -66,7 +66,6 @@ int main() {
 
     printf("Exact calculation\n");
 
-    clock_t start = clock();
     findKNN(&C, &Q, N, k, num_threads); 
     elapsed  = duration(start);
     speed    = qps(start, q);
