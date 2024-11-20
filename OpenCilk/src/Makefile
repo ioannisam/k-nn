@@ -1,11 +1,11 @@
 # Compiler
-CC = gcc
+CC = cilkcc
 
 # Compiler flags
-CFLAGS = -I../include -I/usr/include/hdf5 -I/usr/include/openblas -I/usr/include -lmatio -lhdf5 -lopenblas -lm -fopencilk
+CFLAGS = -I../include -I/usr/include/hdf5 -I/usr/include/openblas -I/usr/include -lmatio -lhdf5 -lopenblas -lm -fcilkplus
 
 # Linker flags (move the libraries to LDFLAGS)
-LDFLAGS = -lmatio -lhdf5 -lopenblas -lm -fopencilk
+LDFLAGS = -lmatio -lhdf5 -lopenblas -lm -fcilkplus
 
 # Source files
 SRCS = main.c input.c print.c distance.c select.c find.c minimize.c test.c 
@@ -33,4 +33,3 @@ clean:
 
 # Specify phony targets
 .PHONY: all clean
-
