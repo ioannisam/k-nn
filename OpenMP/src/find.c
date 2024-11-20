@@ -9,23 +9,36 @@ void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
   int const q = Q->rows;
   int const d = C->cols;
 
+  int const chunk_size = 300;
+  int num_chunks = (q + chunk_size-1) / chunk_size;
+
   #pragma omp parallel for
-  for(int i=0; i<q; i++) {
+  for(int chunk = 0; chunk<num_chunks; chunk++) {
 
-    long double* D = (long double*)malloc(c*sizeof(long double));
+    int start_idx = chunk*chunk_size;
+    int end_idx   = (start_idx+chunk_size > q) ? q : start_idx+chunk_size;
+
+    long double* D = (long double*)malloc((end_idx-start_idx)*c*sizeof(long double));
     memory_check(D);
-    
-    calculate_distances(C, &(Mat){.rows = 1, .cols = d, .data = Q->data + i*d}, D);
 
-    int* indices = (int*)malloc(c*sizeof(int));
-    memory_check(indices);
+    calculate_distances(C, Q, start_idx, end_idx, D);
 
-    for(int j=0; j<c; j++) {
-      indices[j] = j;
+    for(int i=start_idx; i<end_idx; i++) {
+
+      int query_idx = i - start_idx;
+
+      int* indices = (int*)malloc(c*sizeof(int));
+      memory_check(indices);
+
+      for(int j=0; j<c; j++) {
+        indices[j] = j;
+      }
+
+      quickSelect(D + query_idx*c, indices, 0, c-1, k, N + i*k);
+
+      free(indices);
     }
 
-    quickSelect(D, indices, 0, c-1, k, N + i*k);
     free(D);
-    free(indices);
   }
 }

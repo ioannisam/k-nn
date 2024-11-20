@@ -52,9 +52,9 @@ void truncMat(Mat* C, int r, Mat* C_TR) {
 
   double* distances = (double*)malloc(c*sizeof(double));
   #pragma omp parallel for
-  for (int i=0; i<c; i++) {
+  for(int i=0; i<c; i++) {
     double dist = 0.0;
-    for (int j=0; j<d; j++) {
+    for(int j=0; j<d; j++) {
       double diff = C->data[i*d + j] - C_TR->data[j];
       dist += diff*diff;
     }
@@ -65,7 +65,7 @@ void truncMat(Mat* C, int r, Mat* C_TR) {
     double total_dist = 0.0;
 
     #pragma omp parallel for reduction(+:total_dist)
-    for (int j=0; j<c; j++) {
+    for(int j=0; j<c; j++) {
       total_dist += distances[j];
     }
 

@@ -2,16 +2,16 @@
 
 #include <stdlib.h>
 #include <cblas.h>
+#include <cilk/cilk.h>
 
-void calculate_distances(const Mat* C, const Mat* Q, long double* D) {
+void calculate_distances(const Mat* C, const Mat* Q, int start_idx, int end_idx, long double* D) {
 
-  int c = (int)C->rows;
-  int d = (int)C->cols;
+  int c = C->rows;
+  int d = C->cols;
+  int batch_size = end_idx - start_idx;
 
   double* C2 = (double*)malloc(c*sizeof(double));
-  double  Q2;
-  memory_check(C2); 
-
+  memory_check(C2);
   cilk_for(int i=0; i<c; i++) {
     double sum = 0.0;
     for(int j=0; j<d; j++) {
@@ -20,26 +20,32 @@ void calculate_distances(const Mat* C, const Mat* Q, long double* D) {
     C2[i] = sum;
   }
 
-  double sum = 0.0;
-  for(int j=0; j<d; j++) {
-    sum += Q->data[j]*Q->data[j];
+  double* Q2 = (double*)malloc(batch_size*sizeof(double));
+  memory_check(Q2);
+  cilk_for(int i=0; i<batch_size; i++) {
+    double sum = 0.0;
+    for(int j=0; j<d; j++) {
+      sum += Q->data[(start_idx+i)*d + j] * Q->data[(start_idx+i)*d + j];
+    }
+    Q2[i] = sum;
   }
-  Q2 = sum; 
 
-  double* CQ = (double*)malloc(c*sizeof(double));
+  double* CQ = (double*)malloc(c*batch_size*sizeof(double));
   memory_check(CQ);
-  
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, c, 1, d, 1.0, C->data, d, Q->data, 1, 0.0, CQ, 1);
+
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, c, batch_size, d,
+              1.0, C->data, d, Q->data + start_idx * d, d, 0.0, CQ, batch_size);
 
   cilk_for(int i=0; i<c; i++) {
-
-    D[i] = C2[i] - 2*CQ[i] + Q2;
-    if(D[i] < 0.0) {
-      D[i] = 0.0;
+    for(int j=0; j<batch_size; j++) {
+      D[j*c + i] = C2[i] - 2.0*CQ[i*batch_size + j] + Q2[j];
+      if(D[j*c + i] < 0.0) {
+        D[j*c + i] = 0.0;
+      }
     }
   }
 
   free(C2);
+  free(Q2);
   free(CQ);
 }
-

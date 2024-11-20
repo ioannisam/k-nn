@@ -35,7 +35,7 @@ int compare(const void* a, const void* b) {
   }
 }
 
-double recall(Mat* C, Mat* Q, Neighbor* N, int k) {
+double recall(Mat* C, Mat* Q, Neighbor* N, int k, int num_threads) {
 
   double accuracy = 0.0;
 
@@ -48,7 +48,7 @@ double recall(Mat* C, Mat* Q, Neighbor* N, int k) {
 
   Neighbor* N_TEST = (Neighbor*)malloc(SAMPLE*k*sizeof(Neighbor));
   memory_check(N_TEST);
-  findKNN(C, &Q_TEST, N_TEST, k);
+  findKNN(C, &Q_TEST, N_TEST, k, num_threads);
 
   for(int i=0; i<SAMPLE; i++) {
     qsort(N      + i*k, k, sizeof(Neighbor), compare);

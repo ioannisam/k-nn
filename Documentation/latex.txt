@@ -216,7 +216,7 @@ In this matrix:
 \section{Fine Lines}
 
 \subsection{Parallelism}
-If matrices \( C \) and \( Q \) are very large, there is a chance that matrix \( D \) (queries $\times$ corpus) does not fit in memory. To combat this, we calculate matrix \( D \) in segments (slices), use each slice to find the k-NN of the corresponding query, and then discard the slice to make room in memory. This way, we prevent running out of memory. To boost execution speed, we parallelize the workload of computing the \( D \) slice and running quickselect on it. We also use parallelism in order to calculate distances quicker.
+If matrices \( C \) and \( Q \) are very large, there is a chance that matrix \( D \) (queries $\times$ corpus) does not fit in memory. To combat this, we calculate matrix \( D \) in segments (chunks), use each slice to find the k-NN of the corresponding query, and then discard the slice to make room in memory. This way, we prevent running out of memory. To boost execution speed, we parallelize the workload of computing the \( D \) chunk and running quickselect on it. We also use parallelism in order to calculate distances quicker. Chunk size is set to be small enough to be easily stored in memory and large enough to avoid unnesecessary overhead.
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Routine for computing the k smallest distances}]
@@ -226,24 +226,37 @@ void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
   int const q = Q->rows;
   int const d = C->cols;
 
+  int const chunk_size = 300;
+  int num_chunks = (q + chunk_size-1) / chunk_size;
+
   #pragma omp parallel for
-  for(int i=0; i<q; i++) {
+  for(int chunk = 0; chunk<num_chunks; chunk++) {
 
-    long double* D = (long double*)malloc(c*sizeof(long double));
+    int start_idx = chunk*chunk_size;
+    int end_idx   = (start_idx+chunk_size > q) ? q : start_idx+chunk_size;
+
+    long double* D = (long double*)malloc((end_idx-start_idx)*c*sizeof(long double));
     memory_check(D);
-    
-    calculate_distances(C, &(Mat){.rows = 1, .cols = d, .data = Q->data + i*d}, D);
 
-    int* indices = (int*)malloc(c*sizeof(int));
-    memory_check(indices);
+    calculate_distances(C, Q, start_idx, end_idx, D);
 
-    for(int j=0; j<c; j++) {
-      indices[j] = j;
+    for(int i=start_idx; i<end_idx; i++) {
+
+      int query_idx = i - start_idx;
+
+      int* indices = (int*)malloc(c*sizeof(int));
+      memory_check(indices);
+
+      for(int j=0; j<c; j++) {
+        indices[j] = j;
+      }
+
+      quickSelect(D + query_idx*c, indices, 0, c-1, k, N + i*k);
+
+      free(indices);
     }
 
-    quickSelect(D, indices, 0, c-1, k, N + i*k);
     free(D);
-    free(indices);
   }
 }
 \end{lstlisting}
@@ -252,7 +265,7 @@ void findKNN(Mat* C, Mat* Q, Neighbor* N, int k) {
 \subsection{Problem Minimization}
 
 When the datasets become arbitrarily large, we encounter some problems:
-A problem that arises as we scale up is computational complexity. To remedy the extreme computational cost and the curse of high dimensions, we use random projection, based on the Johnson–Lindenstrauss lemma, which proves we can reduce dimensions by projecting our matrices to lower dimensions.
+A problem that arises as we scale up is computational complexity. To remedy the extreme computational cost and the curse of high dimensions, we use random projection, based on the Johnson–Lindenstrauss lemma, which proves we can reduce dimensions by projecting our matrices to lower dimensions, with minimal error.
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Routine for applying Random Projection}]
@@ -286,7 +299,7 @@ void random_projection(Mat* C, Mat* Q, int t, Mat* C_RP, Mat* Q_RP) {
 \end{lstlisting}
 \end{figure}
 
-When \( c \gg d \), we cannot reduce the problem with random projection, as the target dimension \( t \) would exceed the original dimensionality \( d \). Instead, we truncate the matrix \( C \), retaining a set of representative rows. This is done by algorithmically selecting rows that are maximally distant from each other, ensuring adequate variance among the representatives.
+When \( c \gg d \), we cannot reduce the problem with random projection, as the target dimension \( t \) would exceed the original dimensionality \( d \). Instead, we truncate the matrix \( C \), retaining a set of representative rows, using k-means++ initialization. This method chooses rows based on their distance to previously selected rows, ensuring a spread-out, informative subset.
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Matrix Truncation}]
@@ -300,45 +313,62 @@ void truncMat(Mat* C, int r, Mat* C_TR) {
   C_TR->data = (double*)malloc(r*d*sizeof(double));
 
   srand(time(NULL));
-  int idx = rand()%c;
-  memcpy(C_TR->data, C->data + idx*d, d*sizeof(double));
 
-  double* min_distances = (double*)malloc(c*sizeof(double));
+  int first_idx = rand()%c;
+  memcpy(C_TR->data, C->data + first_idx*d, d*sizeof(double));
+
+  double* distances = (double*)malloc(c*sizeof(double));
+  #pragma omp parallel for
   for(int i=0; i<c; i++) {
     double dist = 0.0;
     for(int j=0; j<d; j++) {
       double diff = C->data[i*d + j] - C_TR->data[j];
       dist += diff*diff;
     }
-    min_distances[i] = dist;
+    distances[i] = dist;
   }
 
   for(int i=1; i<r; i++) {
-    double max_dist = -1.0;
-    int max_idx = -1;
+    double total_dist = 0.0;
+
+    #pragma omp parallel for reduction(+:total_dist)
+    for(int j=0; j<c; j++) {
+      total_dist += distances[j];
+    }
+
+    double rand_dist = ((double)rand()/RAND_MAX) * total_dist;
+    double cumulative_dist = 0.0;
+    int    next_idx = 0;
+
+    for(int j=0; j<c; j++) {
+      cumulative_dist += distances[j];
+      if(cumulative_dist >= rand_dist) {
+        next_idx = j;
+        break;
+      }
+    }
+
+    memcpy(C_TR->data + i*d, C->data + next_idx*d, d*sizeof(double));
+
+    #pragma omp parallel for
     for(int j=0; j<c; j++) {
       double dist = 0.0;
       for(int k=0; k<d; k++) {
-        double diff = C->data[j*d + k] - C_TR->data[(i-1)*d + k];
+        double diff = C->data[j*d + k] - C_TR->data[i*d + k];
         dist += diff*diff;
       }
-      if(dist < min_distances[j]) {
-        min_distances[j] = dist;
-      }
-      if(min_distances[j] > max_dist) {
-        max_dist = min_distances[j];
-        max_idx = j;
+      if(dist < distances[j]) {
+        distances[j] = dist;
       }
     }
-    memcpy(C_TR->data + i*d, C->data + max_idx*d, d*sizeof(double));
   }
 
-  free(min_distances);
+  free(distances);
 }
 \end{lstlisting}
 \end{figure}
 
-It is of great importance to choose the target dimensionality \( t \) carefully when using random projection. Based on the lemma, \( t = \frac{ \log(c)}{\epsilon^2} \), where \( \epsilon \) is the allowed error and \( c \) is the number of corpus points, is a good approximation to retain accuracy while significantly reducing computational cost. Note that target dimensionality \( t \) does not depend on the actual dimensionality \(d\). Moreover, the number of representative rows selected when truncating the matrix \( C \) affects the accuracy of our calculations. A heuristic metric that balances both speed and accuracy is given by \( r = 10 \cdot \log(c) + d \).
+It is of great importance to choose the target dimensionality \( t \) carefully when using random projection. Based on the lemma, \( t = \frac{ \log(c)}{\epsilon^2} \), where \( \epsilon \) is the allowed error and \( c \) is the number of corpus points, is a good approximation to retain accuracy while significantly reducing computational cost. Note that target dimensionality \( t \) does not depend on the actual dimensionality \(d\). Moreover, the number of representative rows selected when truncating the matrix \( C \) affects the accuracy of our calculations. A heuristic metric that balances both speed and accuracy is given by \( r = 100 \cdot \log(c) + 10d \).
 
 Applying these minimization techniques is valuable only when the dataset is large. If the dataset is relatively small, we proceed with exact calculation.
 
@@ -354,23 +384,22 @@ Applying these minimization techniques is valuable only when the dataset is larg
     random_projection(&C, &Q, t, &C_RP, &Q_RP);
 
     findKNN(&C_RP, &Q_RP, N, k); 
-    print_neighbors(N, q, k);
 
     free(C_RP.data);
     free(Q_RP.data);
   } else if(c>100000) {
 
     Mat C_TR;
-    int const r = (int)(10*log(c)) + d;
+    int const r = (int)(100*log(c)) + 10*d;
     printf("Representative rows (r): %d\n", r);
     truncMat(&C, r, &C_TR);
 
     findKNN(&C_TR, &Q, N, k);
-    print_neighbors(N, q, k);
 
     free(C_TR.data);
   } else {
-    printf("Exact calculation");
+
+    printf("Exact calculation\n");
 
     findKNN(&C, &Q, N, k); 
     print_neighbors(N, q, k);

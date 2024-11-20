@@ -52,7 +52,7 @@ void truncMat(Mat* C, int r, Mat* C_RP);
 /* distance.c */
 
 // Calculates the distance matrix D between two datasets C and Q
-void calculate_distances(const Mat* C, const Mat* Q, long double* D);
+void calculate_distances(const Mat* C, const Mat* Q, int start_idx, int end_idx, long double* D);
 
 /* find.c */
 
@@ -78,5 +78,6 @@ double qps(clock_t start, size_t q);
 
 // Calculates recall
 double recall(Mat* C, Mat* Q, Neighbor* N, int k);
-int compare(const void* a, const void* b);
+int    compare(const void* a, const void* b);
+
 #endif // KNN_H

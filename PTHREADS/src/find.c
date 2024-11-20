@@ -3,62 +3,87 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-void findKNN(Mat* C, Mat* Q, Neighbor* N, int k, int num_threads) {
-
-  pthread_t  threads[num_threads];
-  ThreadArgs args[num_threads];
-
-  int q = Q->rows;
-  int queries_per_thread = q / num_threads;
-
-  for(int i=0; i<num_threads; i++) {
-
-    args[i].C = C;
-    args[i].Q = Q;
-    args[i].N = N;
-    args[i].k = k;
-    args[i].start = i*queries_per_thread;
-    args[i].end = (i == num_threads-1) ? q : (i+1)*queries_per_thread;
-
-    pthread_create(&threads[i], NULL, threadKNN, &args[i]);
-  }
-
-  for(int i=0; i<num_threads; i++) {
-    pthread_join(threads[i], NULL);
-  }
-}
+// Struct for thread arguments
+typedef struct {
+  Mat* C;           
+  Mat* Q;
+  Neighbor* N;
+  int k;
+  int c;
+  int chunk_size;
+  int start_chunk;
+  int end_chunk;
+} ThreadArgs;
 
 void* threadKNN(void* args) {
 
   ThreadArgs* data = (ThreadArgs*)args;
-  Mat*        C = data->C;
-  Mat*        Q = data->Q;
-  Neighbor*   N = data->N;
-  int         k = data->k;
-  int     start = data->start;
-  int       end = data->end;
+  Mat* C = data->C;
+  Mat* Q = data->Q;
+  Neighbor* N = data->N;
+  int k = data->k;
+  int c = data->c;
+  int chunk_size = data->chunk_size;
 
-  int const c = C->rows;
-  int const d = C->cols;
+  for(int chunk=data->start_chunk; chunk<data->end_chunk; chunk++) {
 
-  for(int i=start; i<end; i++) {
+    int start_idx = chunk*chunk_size;
+    int end_idx = (start_idx+chunk_size > Q->rows) ? Q->rows : start_idx+chunk_size;
 
-    long double* D = (long double*)malloc(c*sizeof(long double));
+    long double* D = (long double*)malloc((end_idx-start_idx)*c*sizeof(long double));
     memory_check(D);
 
-    calculate_distances(C, &(Mat){.rows = 1, .cols = d, .data = Q->data + i*d}, D);
+    calculate_distances(C, Q, start_idx, end_idx, D);
 
-    int* indices = (int*)malloc(c*sizeof(int));
-    memory_check(indices);
+    for(int i=start_idx; i<end_idx; i++) {
+      int query_idx = i - start_idx;
 
-    for(int j=0; j<c; j++) {
-      indices[j] = j;
+      int* indices = (int*)malloc(c*sizeof(int));
+      memory_check(indices);
+
+      for(int j=0; j<c; j++) {
+        indices[j] = j;
+      }
+
+      quickSelect(D + query_idx*c, indices, 0, c-1, k, N + i*k);
+
+      free(indices);
     }
 
-    quickSelect(D, indices, 0, c-1, k, N + i*k);
     free(D);
-    free(indices);
   }
 
   pthread_exit(NULL);
+}
+
+void findKNN(Mat* C, Mat* Q, Neighbor* N, int k, int num_threads) {
+
+  int c = C->rows;
+  int q = Q->rows;
+  int chunk_size = 300;
+  int num_chunks = (q + chunk_size-1) / chunk_size;
+
+  pthread_t threads[num_threads];
+  ThreadArgs args[num_threads];
+
+  int chunks_per_thread = (num_chunks + num_threads-1) / num_threads;
+
+  for(int t=0; t<num_threads; t++) {
+    args[t] = (ThreadArgs){
+      .C = C,
+      .Q = Q,
+      .N = N,
+      .k = k,
+      .c = c,
+      .chunk_size = chunk_size,
+      .start_chunk = t*chunks_per_thread,
+      .end_chunk = (t+1)*chunks_per_thread > num_chunks ? num_chunks : (t+1)*chunks_per_thread,
+    };
+
+    pthread_create(&threads[t], NULL, threadKNN, &args[t]);
+  }
+
+  for(int t=0; t<num_threads; t++) {
+    pthread_join(threads[t], NULL);
+  }
 }

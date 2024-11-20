@@ -50,7 +50,7 @@ int main() {
   } else if(c>100000) {
 
     Mat C_TR;
-    int const r = (int)(50*log(c)) + 2*d;
+    int const r = (int)(100*log(c)) + 10*d;
     printf("Representative rows (r): %d\n", r);
     truncMat(&C, r, &C_TR);
 
@@ -74,8 +74,8 @@ int main() {
     print_neighbors(N, q, k);
   }
 
-  printf("Execution Time: %.2f\n", elapsed);
-  printf("Queries per Second: %.1f\n", speed);
+  printf("Execution Time: %.2f seconds\n", elapsed);
+  printf("Queries per Second: %.1f queries\n", speed);
   printf("Accuracy: %.2f%%\n", 100*accuracy);
 
   free(C.data);
