@@ -14,12 +14,12 @@ PC specs: Intel Pentium Silver N5030 (4 cores, 4 threads), RAM (4GB), Arch Linux
 Test data: mnist-784-euclidean(1), sift-128-euclidean(2)
 [ANN Benchmarks](https://github.com/erikbern/ann-benchmarks?tab=readme-ov-file)
 
-|                | Pthreads (1) | Pthreads (2) | OpenCilk (1) | OpenCilk (2) | OpenMP (1) | OpenMP (2) |
-|----------------|--------------|--------------|--------------|--------------|------------|------------|
-| Threads Used   | 4            | 4            | 4            | 4            | 4          | 4          |
-| Accuracy (%)   | 97.03        | 54.59        | 96.88        | 51.79        | 96.72      | 47.78      |
-| Queries/second | 378.0        | 12.2         | 388.8        | 13.3         | 391.8      | 14.1       |
-| Execution Time | 26.46 secs   | 819.99       | 25.72        | 750.32       | 25.52      | 707.58     |
+|                    | Pthreads (1) | Pthreads (2) | OpenCilk (1) | OpenCilk (2) | OpenMP (1) | OpenMP (2) |
+|--------------------|--------------|--------------|--------------|--------------|------------|------------|
+| Threads Used       | 4            | 4            | 4            | 4            | 4          | 4          |
+| Accuracy (%)       | 97.03        | 54.59        | 96.88        | 51.79        | 96.72      | 47.78      |
+| Queries/second     | 378.0        | 12.2         | 388.8        | 13.3         | 391.8      | 14.1       |
+| Execution Time (s) | 26.46        | 819.99       | 25.72        | 750.32       | 25.52      | 707.58     |
 
 ## Appendix
 For more in-depth information about the project, please refer to the report.pdf document.
