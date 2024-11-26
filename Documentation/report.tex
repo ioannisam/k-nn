@@ -250,7 +250,7 @@ In this matrix:
 \section{Fine Lines}
 
 \subsection{Parallelism}
-If matrices \( C \) and \( Q \) are very large, there is a chance that matrix \( D \) (queries $\times$ corpus) does not fit in memory. To combat this, we calculate matrix \( D \) in segments (chunks), use each chunk to find the k-NN of the corresponding queries, and then discard the chunk to make room in memory. This way, we prevent running out of memory. To boost execution speed, we parallelize the workload of computing the \( D \) chunk and running quickselect on it. We also use parallelism in order to calculate distances quicker. Chunk size is set to be small enough to be easily stored in memory and large enough to avoid unnecessary overhead.
+If matrices \( C \) and \( Q \) are very large, there is a chance that matrix \( D \) (queries $\times$ corpus) does not fit in memory. To combat this, we calculate matrix \( D \) in segments (chunks), use each chunk to find the k-NN of the corresponding queries, and then discard the chunk to make room in memory. This way, we prevent running out of memory. To boost execution speed, we parallelize the workload of computing the \( D \) chunk and running quickselect on it. We also use parallelism in order to calculate distances quicker. Chunk size is set to be small enough to be easily stored in memory and large enough to avoid unnecessary overhead. That way we also speed up the calculations significantly.
 
 \begin{figure}[H]
 \begin{lstlisting}[language=C, caption={Routine for computing the k smallest distances}]
