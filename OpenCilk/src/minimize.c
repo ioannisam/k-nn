@@ -62,9 +62,10 @@ void truncMat(Mat* C, int r, Mat* C_TR) {
 
   for(int i=1; i<r; i++) {
 
-    double total_dist = cilk_reduce(+, 0.0, c, [&](int j) {
-      return distances[j];
-    });
+    double total_dist = 0.0;
+    cilk_for(int j=0; j<c; j++) {
+      total_dist += distances[j];
+    }
 
     double rand_dist = ((double)rand()/RAND_MAX) * total_dist;
     double cumulative_dist = 0.0;
