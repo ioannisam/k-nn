@@ -35,7 +35,11 @@ void quickSelect(long double* arr, int* indices, int left, int right, int k, Nei
     if(pivotIndex == k-1) {
 
       for(int i=0; i<k; i++) {
-        result[i].distance = sqrt(arr[i]);
+        if(arr[i] < 1) {
+          result[i].distance = arr[i];
+        } else {
+          result[i].distance = sqrt(arr[i]);
+        }
         result[i].index = indices[i];
       }
       return;

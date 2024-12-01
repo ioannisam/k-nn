@@ -177,8 +177,11 @@ void calculate_distances(const Mat* C, const Mat* Q, int start_idx, int end_idx,
   for(int i=0; i<c; i++) {
     for(int j=0; j<batch_size; j++) {
       D[j*c + i] = C2[i] - 2.0*CQ[i*batch_size + j] + Q2[j];
+      
       if(D[j*c + i] < 0.0) {
         D[j*c + i] = 0.0;
+      } else if(D[j*c + i] < 1) {
+        D[j*c + i] = sqrt(D[j*c + i]);
       }
     }
   }
@@ -216,7 +219,11 @@ void quickSelect(long double* arr, int* indices, int left, int right, int k, Nei
     if(pivotIndex == k-1) {
 
       for(int i=0; i<k; i++) {
-        result[i].distance = sqrt(arr[i]);
+        if(arr[i] < 1) {
+          result[i].distance = arr[i];
+        } else {
+          result[i].distance = sqrt(arr[i]);
+        }
         result[i].index = indices[i];
       }
       return;
@@ -469,7 +476,7 @@ Applying these minimization techniques is valuable only when the dataset is larg
 \end{figure}
 
 \subsection{Details}
-To improve computational efficiency, we avoid calculating the square root of distances in the `calculate-distances` function. Instead, squared distances are compared directly within the `quickselect` function. This is mathematically valid because, for any \( a > 0 \) and \( b > 0 \), the inequality \( a > b \) is equivalent to \( a^2 > b^2 \). The square root is computed only for the final k-nearest neighbors. This approach reduces the number of square root calculations from \( c \times q \) (one for each distance) to \( k \times q \), yielding a significant performance improvement.
+To improve computational efficiency, we avoid calculating the square root of distances in the `calculate-distances` function. Instead, squared distances are compared directly within the `quickselect` function. This is mathematically valid because, for any \( a > 0 \) and \( b > 0 \), where \(a,b > 1\)), the inequality \( a > b \) is equivalent to \( a^2 > b^2 \). The square root is computed only for the final k-nearest neighbors. In the corner case where \(distance < 1\) we compute the square root right away. This approach reduces the number of square root calculations from \( c \times q \) (one for each distance) to \( k \times q \), yielding a significant performance improvement.
 
 While this method enhances runtime efficiency, it requires careful handling of numerical limits. The IEEE 754 double-precision format can reliably represent numbers up to approximately \( 10^{308} \). However, squaring large elements in matrices \( C \) and \( Q \) may cause intermediate values to approach or exceed this limit, potentially resulting in overflow. To mitigate this, we use the `long double` data type, which provides a wider range (up to approximately \( 10^{4932} \) in most implementations) to safely handle large squared norms.
 

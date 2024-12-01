@@ -1,6 +1,7 @@
 #include "../include/kNN.h"
 
 #include <stdlib.h>
+#include <math.h>
 #include <cblas.h>
 #include <cilk/cilk.h>
 
@@ -39,8 +40,11 @@ void calculate_distances(const Mat* C, const Mat* Q, int start_idx, int end_idx,
   cilk_for(int i=0; i<c; i++) {
     for(int j=0; j<batch_size; j++) {
       D[j*c + i] = C2[i] - 2.0*CQ[i*batch_size + j] + Q2[j];
+
       if(D[j*c + i] < 0.0) {
         D[j*c + i] = 0.0;
+      } else if(D[j*c + i] < 1) {
+        D[j*c + i] = sqrt(D[j*c + i]);
       }
     }
   }

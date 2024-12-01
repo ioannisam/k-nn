@@ -1,6 +1,7 @@
 #include "../include/kNN.h"
 
 #include <stdlib.h>
+#include <math.h>
 #include <cblas.h>
 #include <pthread.h>
 
@@ -71,8 +72,11 @@ void* compute_D(void* args) {
   for(int i=data->thread_start; i<data->thread_end; i++) {
     for(int j=0; j<batch_size; j++) {
       D[j*c + i] = C2[i] - 2.0*CQ[i*batch_size + j] + Q2[j];
+
       if(D[j*c + i] < 0.0) {
         D[j*c + i] = 0.0;
+      } else if(D[j*c + i] < 1) {
+        D[j*c + i] = sqrt(D[j*c + i]);
       }
     }
   }
