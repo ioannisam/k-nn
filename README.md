@@ -1,4 +1,4 @@
-**Authors:** Ioannis Michalainas, Iasonas Lamprinidis  
+**Authors:** Ioannis Michalainas  
 **Date:** October/November 2024
 
 ## Abstract
@@ -29,7 +29,7 @@ git clone https://github.com/ioannisam/k-nn.git
 ```
 cd OpenMP/src
 ```
-3. **Compile and run**
+3. **Compile and run:**
 ```
 make
 ```
@@ -45,4 +45,4 @@ To use custom test files (.mat and .hdf5 supported) you need to place them in th
 **Note:** When using OpenCilk, ensure the version compatibility of the library, as mismatches can occur.
 
 ## Appendix
-For more in-depth information about the project, please refer to the report.pdf document.
+For more in-depth information about the project, please refer to the `report.pdf` document.
